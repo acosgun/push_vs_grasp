@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find apclab_description)/urdf/table_colour.gazebo.xacro" />
+  <xacro:property name="pi" value="3.1415926535897931"/>
+  <xacro:property name="leg_mass" value="0.5" />
+  <xacro:property name="table_surface_mass" value="5" />
+  <xacro:property name="table_surface_length" value="1.5" />
+  <xacro:property name="table_surface_width" value="0.9" />
+  <xacro:property name="table_surface_height" value="0.025" />
+  <xacro:property name="leg_length" value="0.03" />
+  <xacro:property name="leg_height" value="0.7" />
+
+  <xacro:macro  name="table_surface" >
+    <link name="table_surface_link">
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${table_surface_length} ${table_surface_width} ${table_surface_height}"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${table_surface_length} ${table_surface_width} ${table_surface_height}"/>
+        </geometry>
+        <material name="">
+          <color rgba="0.9 0.9 0.9 1" />
+        </material>
+      </visual>
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${table_surface_mass}"/>
+        <inertia
+          ixx="1.0" ixy="0.0" ixz="0.0"
+          iyy="1.0" iyz="0.0"
+          izz="1.0"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+<!-- leg_x leg_y the quadrain of table legs in robot frame -->
+  <xacro:macro  name="leg" params="leg_idx">
+      <link name="leg_${leg_idx}">
+        <collision>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <geometry>
+            <box size="${leg_length} ${leg_length} ${leg_height}"/>
+          </geometry>
+        </collision>
+
+        <visual>
+          <geometry>
+            <box size="${leg_length} ${leg_length} ${leg_height}"/>
+          </geometry>
+          <material name="">
+            <color rgba="0.1 0.1 0.1 1" />
+          </material>
+        </visual>
+
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="${leg_mass}"/>
+          <inertia
+            ixx="1.0" ixy="0.0" ixz="0.0"
+            iyy="1.0" iyz="0.0"
+            izz="1.0"/>
+        </inertial>
+      </link>
+  </xacro:macro>
+
+  <xacro:macro name="leg_joint" params="leg_idx leg_x leg_y">
+    <joint name="table_leg_joint_${leg_idx}" type="fixed">
+      <origin xyz="${leg_x*0.725} ${leg_y*0.315} -0.3625"/>
+      <parent link="table_surface_link"/>
+      <child link="leg_${leg_idx}"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="leg_group">
+    <xacro:leg leg_idx="1" />
+    <xacro:leg leg_idx="2" />
+    <xacro:leg leg_idx="3" />
+    <xacro:leg leg_idx="4" />
+  </xacro:macro>
+
+  <xacro:macro name="leg_joint_group">
+    <xacro:leg_joint leg_idx="1" leg_x="-1" leg_y="-1" />
+    <xacro:leg_joint leg_idx="2" leg_x="1" leg_y="-1" />
+    <xacro:leg_joint leg_idx="3" leg_x="1" leg_y="1" />
+    <xacro:leg_joint leg_idx="4" leg_x="-1" leg_y="1" />
+  </xacro:macro>
+
+  <xacro:macro name="paint_table">
+    <xacro:leg_colour leg_idx="1" />
+    <xacro:leg_colour leg_idx="2" />
+    <xacro:leg_colour leg_idx="3" />
+    <xacro:leg_colour leg_idx="4" />
+    <xacro:table_surface_colour />
+  </xacro:macro>
+
+  <xacro:macro name="operation_table">
+    <xacro:table_surface />
+    <xacro:leg_group />
+    <xacro:leg_joint_group />
+    <xacro:paint_table />
+  </xacro:macro>
+
+</robot>

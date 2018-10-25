@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="apclab_world">
+
+	<xacro:property name="camera_pose_z" value="1.7" />
+	<xacro:property name="camera_pose_y" value="1.6" />
+	<xacro:property name="camera_pitch" value="${pi/4}" />
+
+	<xacro:property name="pi" value="3.1415926535897931"/>
+
+	<!-- Load Camera Config File -->
+	<xacro:include filename="$(find apclab_gazebo)/urdf/camera.gazebo.xacro" />
+	<!-- Setup armbot transmission -->
+
+	<!-- THE ROBOT -->
+	<link name="world" />
+
+
+	<!-- Load operation_table -->
+	<xacro:include filename="$(find apclab_gazebo)/urdf/operation_table.urdf.xacro" />
+	<xacro:operation_table />
+
+	<joint name="world_to_table_joint" type="fixed">
+		<parent link="world" />
+		<child link = "table_surface_link" />
+		<origin xyz="0.0 0.85 0.7125" rpy="0.0 0.0 0.0" />
+	</joint>
+
+	<!-- ##################################
+		 			Camera Setup
+	################################## -->
+		<joint name="camera_joint" type="fixed">
+			<axis xyz="1 0 0" />
+			<origin xyz="0 ${camera_pose_y} ${camera_pose_z}" rpy="0 ${camera_pitch} -${pi/2}"/>
+			<parent link="world"/>
+			<child link="camera_link"/>
+		</joint>
+
+	<!-- Camera -->
+		<link name="camera_link">
+			<collision>
+				<origin xyz="-0.05 0 0" rpy="-${pi/2} ${pi} -${pi/2}"/>
+				<geometry>
+					<box size="0.4 0.01 0.04"/>
+				</geometry>
+			</collision>
+
+			<visual>
+				<origin xyz="-0.05 0 0" rpy="-${pi/2} ${pi} -${pi/2}"/>
+				<geometry>
+					<mesh filename="package://apclab_gazebo/meshes/r200.dae"/>
+				</geometry>
+			</visual>
+
+			<inertial>
+				<mass value="1e-5" />
+				<origin xyz="0 0 0" rpy="0 0 0"/>
+				<inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+			</inertial>
+		</link>
+
+
+	<!-- ###############################
+						Room Setup
+	############################### -->
+	<!-- Lab Walls -->
+	<joint name="wall_joint" type="fixed">
+		<axis xyz="1 0 0" />
+		<origin xyz="0 -0.45 2.5" rpy="0 0 0"/>
+		<parent link="world"/>
+		<child link="wall_link"/>
+	</joint>
+
+	<gazebo reference="wall_link">
+		<material>Gazebo/Residential</material>
+	</gazebo>
+
+	<link name="wall_link">
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<box size="5 0.001 5"/>
+			</geometry>
+		</collision>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<box size="5 0.001 5"/>
+			</geometry>
+			<material name="lab_wall">
+				<color rgba="${143/255} ${199/255} ${184/255} 1" />
+			</material>
+		</visual>
+
+		<inertial>
+			<mass value="1e-5" />
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+		</inertial>
+	</link>
+
+	<!-- Lab Floor-->
+	<joint name="floor_joint" type="fixed">
+		<axis xyz="1 0 0" />
+		<origin xyz="0 2.05 0.0005" rpy="0 0 0"/>
+		<parent link="world"/>
+		<child link="floor_link"/>
+	</joint>
+
+	<gazebo reference="floor_link">
+		<material>Gazebo/Residential</material>
+	</gazebo>
+
+	<link name="floor_link">
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<box size="5 5 0.001"/>
+			</geometry>
+		</collision>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<box size="5 5 0.001"/>
+			</geometry>
+			<material name="grey_floor">
+				<color rgba="${214/255} ${88/255} ${93/255} 1" />
+			</material>
+		</visual>
+
+		<inertial>
+			<mass value="1e-5" />
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+		</inertial>
+	</link>
+
+</robot>

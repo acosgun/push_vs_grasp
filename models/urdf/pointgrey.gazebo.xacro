@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!--
+  Format7_Mode0
+  width
+  2048
+
+  height
+  1536
+
+  [narrow_stereo]
+
+  camera matrix
+  1372.918088 0.000000 1054.827131
+  0.000000 1371.787152 803.112735
+  0.000000 0.000000 1.000000
+
+  distortion
+  -0.041091 0.020473 0.000432 0.002373 0.000000
+
+  rectification
+  1.000000 0.000000 0.000000
+  0.000000 1.000000 0.000000
+  0.000000 0.000000 1.000000
+
+  projection
+  1349.154907 0.000000 1061.212110 0.000000
+  0.000000 1356.506470 804.328041 0.000000
+  0.000000 0.000000 1.000000 0.000000
+  ######################################
+  Format7_Mode1
+  width
+  1024
+
+  height
+  768
+
+  [narrow_stereo]
+
+  camera matrix
+  688.679536 0.000000 512.864890
+  0.000000 688.124547 405.698920
+  0.000000 0.000000 1.000000
+
+  distortion
+  -0.039715 0.011018 0.001999 0.000875 0.000000
+
+  rectification
+  1.000000 0.000000 0.000000
+  0.000000 1.000000 0.000000
+  0.000000 0.000000 1.000000
+
+  projection
+  675.540955 0.000000 513.973063 0.000000
+  0.000000 679.820374 407.504703 0.000000
+  0.000000 0.000000 1.000000 0.000000-->
+
+  <gazebo reference="camera_link">
+    <sensor type="camera" name="pointgrey_camera">
+      <update_rate>30.0</update_rate>
+      <camera name="head">
+        <horizontal_fov>1.2795</horizontal_fov>
+        <image>
+          <width>1024</width>
+          <height>768</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>10</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise is sampled independently per pixel on each frame.
+               That pixel's noise value is added to each of its color
+               channels, which at that point lie in the range [0,1]. -->
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>camera_pg</cameraName>
+        <imageTopicName>/sim_camera/image_raw</imageTopicName>
+        <cameraInfoTopicName>/sim_camera/camera_info</cameraInfoTopicName>
+        <frameName>camera_link</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>

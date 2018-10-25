@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find apclab_description)/urdf/ur_stand_colour.gazebo.xacro" />
+
+  <xacro:property name="PI" value="3.1415926535897931"/>
+  <xacro:property name="stand_leg_mass" value="2" />
+  <xacro:property name="stand_surface_mass" value="10" />
+  <xacro:property name="stand_surface_length" value="0.76" />
+  <xacro:property name="stand_surface_width" value="0.6" />
+  <xacro:property name="stand_surface_height" value="0.08" />
+  <xacro:property name="stand_leg_length" value="0.05" />
+  <xacro:property name="stand_leg_height" value="0.84" />
+
+  <xacro:macro  name="stand_surface" >
+    <link name="stand_surface_link">
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${stand_surface_length} ${stand_surface_width} ${stand_surface_height}"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${stand_surface_length} ${stand_surface_width} ${stand_surface_height}"/>
+        </geometry>
+        <material name="">
+          <color rgba="0.9 0.9 0.9 1" />
+        </material>
+      </visual>
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${stand_surface_mass}"/>
+        <inertia
+          ixx="1.0" ixy="0.0" ixz="0.0"
+          iyy="1.0" iyz="0.0"
+          izz="1.0"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+
+  <xacro:macro  name="mounting_plate" >
+    <link name="mounting_plate_link">
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.25 0.25 0.018"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.25 0.25 0.018"/>
+        </geometry>
+        <material name="">
+          <color rgba="0.9 0.9 0.9 1" />
+        </material>
+      </visual>
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.3"/>
+        <inertia
+          ixx="1.0" ixy="0.0" ixz="0.0"
+          iyy="1.0" iyz="0.0"
+          izz="1.0"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+<!-- leg_x leg_y the quadrain of table legs in robot frame -->
+  <xacro:macro  name="stand_leg" params="stand_leg_idx">
+      <link name="stand_leg_${stand_leg_idx}">
+        <collision>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <geometry>
+            <box size="${stand_leg_length} ${stand_leg_length} ${stand_leg_height}"/>
+          </geometry>
+        </collision>
+
+        <visual>
+          <geometry>
+            <box size="${stand_leg_length} ${stand_leg_length} ${stand_leg_height}"/>
+          </geometry>
+          <material name="">
+            <color rgba="0.1 0.1 0.1 1" />
+          </material>
+        </visual>
+
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="${stand_leg_mass}"/>
+          <inertia
+            ixx="1.0" ixy="0.0" ixz="0.0"
+            iyy="1.0" iyz="0.0"
+            izz="1.0"/>
+        </inertial>
+      </link>
+  </xacro:macro>
+
+  <xacro:macro name="mounting_plate_joint" >
+    <joint name="mounting_plate_joint" type="fixed">
+      <origin xyz="0 0.16 ${stand_surface_height/2+0.006}"/>
+      <parent link="stand_surface_link"/>
+      <child link="mounting_plate_link"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="stand_leg_joint" params="stand_leg_idx stand_leg_x stand_leg_y">
+    <joint name="stand_leg_joint_${stand_leg_idx}" type="fixed">
+      <origin xyz="${stand_leg_x*0.355} ${stand_leg_y*0.275} -0.46"/>
+      <parent link="stand_surface_link"/>
+      <child link="stand_leg_${stand_leg_idx}"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="stand_leg_group">
+    <xacro:stand_leg stand_leg_idx="1" />
+    <xacro:stand_leg stand_leg_idx="2" />
+    <xacro:stand_leg stand_leg_idx="3" />
+    <xacro:stand_leg stand_leg_idx="4" />
+  </xacro:macro>
+
+  <xacro:macro name="stand_leg_joint_group">
+    <xacro:stand_leg_joint stand_leg_idx="1" stand_leg_x="-1" stand_leg_y="-1" />
+    <xacro:stand_leg_joint stand_leg_idx="2" stand_leg_x="1" stand_leg_y="-1" />
+    <xacro:stand_leg_joint stand_leg_idx="3" stand_leg_x="1" stand_leg_y="1" />
+    <xacro:stand_leg_joint stand_leg_idx="4" stand_leg_x="-1" stand_leg_y="1" />
+  </xacro:macro>
+
+  <xacro:macro name="paint_ur_stand">
+    <xacro:stand_leg_colour stand_leg_idx="1" />
+    <xacro:stand_leg_colour stand_leg_idx="2" />
+    <xacro:stand_leg_colour stand_leg_idx="3" />
+    <xacro:stand_leg_colour stand_leg_idx="4" />
+    <xacro:stand_surface_colour />
+    <xacro:mounting_plate_colour />
+  </xacro:macro>
+
+  <xacro:macro name="ur_stand">
+    <xacro:stand_surface />
+    <xacro:mounting_plate />
+    <xacro:mounting_plate_joint />
+    <xacro:stand_leg_group />
+    <xacro:stand_leg_joint_group />
+    <xacro:paint_ur_stand />
+  </xacro:macro>
+
+</robot>
