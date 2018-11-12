@@ -12,9 +12,8 @@
   </include>
 
   <!-- Spawn Table -->
-  <param name="table_description" command="$(find xacro)/xacro.py $(find push_vs_grasp)/models/urdf/table_colour.gazebo.xacro"/>
-
-  <node name="mybot_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" args="-urdf -param table_description -model table" />
+  <!--<param name="table_description" command="$(find xacro)/xacro.py $(find push_vs_grasp)/models/urdf/table_colour.gazebo.xacro"/>-->
+  <!--<node name="mybot_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" args="-urdf -param table_description -model table" />-->
   
    
 </launch>

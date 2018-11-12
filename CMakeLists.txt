@@ -8,7 +8,6 @@ project(push_vs_grasp)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  gazebo
   gazebo_msgs
   rospy
   geometry_msgs
@@ -107,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES push_vs_grasp
-   CATKIN_DEPENDS gazebo gazebo_msgs rospy geometry_msgs tf
+   CATKIN_DEPENDS gazebo_msgs rospy geometry_msgs tf
 #  DEPENDS system_lib
 )
 

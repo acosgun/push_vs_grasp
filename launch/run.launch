@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <launch>
   <include file="$(find push_vs_grasp)/launch/gazebo.launch"/>
+
   <include file="$(find push_vs_grasp)/launch/ur5.launch"/>
-  <!--<node pkg = "apclab_control" name="arm2home" type="arm2home_sim.py" output="screen"/>-->
+
+  <!--<node pkg="push_vs_grasp" name="spawn_table_node" type="spawn_table.py" output="screen"/>-->
+  
 </launch>
