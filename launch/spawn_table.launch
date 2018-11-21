@@ -1,0 +1,5 @@
+<launch>
+	<node pkg="push_vs_grasp" name="spawn_table_node" type="spawn_table.py" output="screen">
+	      <param name="model_filename" value ="$(find push_vs_grasp)/models/table/model.sdf"/>
+	</node>
+</launch>

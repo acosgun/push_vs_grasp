@@ -1,0 +1,6 @@
+<launch>
+	<node pkg="push_vs_grasp" name="spawn_objects_node" type="spawn_objects.py" output="screen">
+		<param name="model_filename_obj_1" value ="$(find push_vs_grasp)/models/unit_cylinder/model_blue.sdf"/>
+		<param name="model_filename_obj_2" value ="$(find push_vs_grasp)/models/unit_cylinder/model_red.sdf"/>	
+	</node>
+</launch>

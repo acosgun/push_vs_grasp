@@ -1,9 +1,25 @@
 <?xml version="1.0"?>
 <launch>
-  <include file="$(find push_vs_grasp)/launch/gazebo.launch"/>
 
+  <arg name="sim" default="true" />
+
+  <!-- Gazebo -->
+  <include file="$(find push_vs_grasp)/launch/gazebo.launch"/>
+  <include file="$(find push_vs_grasp)/launch/spawn_table.launch"/>  
+
+  <!-- Robot -->
   <include file="$(find push_vs_grasp)/launch/ur5.launch"/>
 
-  <!--<node pkg="push_vs_grasp" name="spawn_table_node" type="spawn_table.py" output="screen"/>-->
+  <!-- Moveit -->
+  <include file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch">
+    <arg name="sim" default="$(arg sim)"/>
+  </include>
+  <arg name="config" default="true" />
+  <include file="$(find ur5_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="config" default="$(arg config)"/>
+  </include>  
+
+  
+  <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>  
   
 </launch>
