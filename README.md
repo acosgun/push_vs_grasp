@@ -1,6 +1,6 @@
 # push_vs_grasp
 
-Tested on Gazebo 7.14
+Tested on Ubuntu 16.04 LTS, ROS Kinetic, Gazebo 7.14
 
 To run:
 
