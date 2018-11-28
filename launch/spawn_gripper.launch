@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-
-  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find push_vs_grasp)/models/gripper/robotiq_2f_85.urdf.xacro'" />
-  <node name="spawn_gripper" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model gripper" respawn="false" output="screen" />
-
+  <arg name="enabled" default="true" doc="none" />
+  
+  <param if="$(arg enabled)" name="gripper_description" command="$(find xacro)/xacro --inorder '$(find robotiq_85_description)/urdf/robotiq_85_gripper.urdf.xacro'" />
 </launch>

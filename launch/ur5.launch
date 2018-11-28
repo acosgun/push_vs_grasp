@@ -1,5 +1,23 @@
 <?xml version="1.0"?>
 <launch>
+
+  <!-- Init Robot pose -->
+  <arg name="x" default="0"/>
+  <arg name="y" default="0.3"/>
+  <arg name="z" default="1.02"/>
+  <arg name="roll" default="0"/>
+  <arg name="pitch" default="0"/>
+  <arg name="yaw" default="1.57079633"/>
+
+  <!-- Init Robot State -->
+  <arg name="j0_init" default="0"/>
+  <arg name="j1_init" default="-1.57079633"/>
+  <arg name="j2_init" default="0"/>
+  <arg name="j3_init" default="-1.57079633"/>
+  <arg name="j4_init" default="0"/>
+  <arg name="j5_init" default="0"/>
+
+  
   <arg name="limited" default="false"  doc="If true, limits joint range [-PI, PI] on all joints." />
   
   <!-- send robot urdf to param server -->
@@ -8,7 +26,7 @@
   </include>
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
-  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot -x 0.0 -y 0.25 -z 1.02" respawn="false" output="screen" />
+  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg roll) -P $(arg pitch) -Y $(arg yaw) -J shoulder_pan_joint $(arg j0_init) -J shoulder_lift_joint $(arg j1_init) -J elbow_joint $(arg j2_init) -J wrist_1_joint $(arg j3_init) -J wrist_2_joint $(arg j4_init) -J wrist_3_joint $(arg j5_init) -unpause"/>
 
   <include file="$(find ur_gazebo)/launch/controller_utils.launch"/>
 

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name="paused" default="false"/>
+  <arg name="paused" default="true"/>
   <arg name="gui" default="true"/>
 
   <!-- Start Sim -->
