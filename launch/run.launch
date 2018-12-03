@@ -23,7 +23,7 @@
     <!--<include file="$(find push_vs_grasp)/launch/spawn_gripper.launch"/>-->
     
     <!-- Tabletop Objects -->
-    <!--<include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>-->
+    <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>
     
   </group>
 
