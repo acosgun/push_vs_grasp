@@ -6,45 +6,33 @@
   <arg name="debug" default="false" />
   <arg name="limited" default="true" />
   
-  <!-- Simulation -->
-  <group if="$(arg sim)">
-    
+  <!-- simulation -->
+  <group if="$(arg sim)">    
     <include file="$(find push_vs_grasp)/launch/gazebo.launch"/>    
     <include file="$(find push_vs_grasp)/launch/spawn_table.launch"/>
     <include file="$(find push_vs_grasp)/launch/spawn_kinect.launch"/>
     <include file="$(find push_vs_grasp)/launch/ur5.launch"/>
     <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>
-    <!--<include file="$(find kinect_segmentation)/launch/tabletop_perception.launch"/>-->
-
-    <node pkg="tf" type="static_transform_publisher" name="base_link_to_camera_tf" args="-1.1 0.0 0.48 -1.57 0 -2.37 base_link camera_link 10" />
-    
-    <!-- FT Sensor -->
-    <!--<include file="$(find push_vs_grasp)/launch/spawn_ft_sensor.launch"/>-->
-
-    <!-- Gripper -->
+    <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>
     <!--<include file="$(find push_vs_grasp)/launch/spawn_gripper.launch"/>-->           
   </group>
 
-  <!-- Real Robot -->
+  <!-- real Robot -->
   <group unless="$(arg sim)">
-
     <include file="$(find ur_modern_driver)/launch/ur5_bringup.launch">
       <arg name="robot_ip" value="$(arg robot_ip)" />
     </include>
-
-    <include file="$(find openni_launch)/launch/openni.launch"/>
-    <include file="$(find kinect_segmentation)/launch/tabletop_perception.launch"/>
-    
+    <!--<include file="$(find openni_launch)/launch/openni.launch"/>-->
+    <!--<include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>-->    
   </group>
   
-
-  <!-- Moveit -->
-
+  <!-- moveit -->
   <include file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch">
       <arg name="sim" default="$(arg sim)"/>
   </include>
 
-  <include file="$(find ur5_moveit_config)/launch/moveit_rviz.launch">
+  <!-- rviz -->
+  <include file="$(find push_vs_grasp)/launch/rviz.launch">
     <arg name="config" default="true"/>
   </include>
   
