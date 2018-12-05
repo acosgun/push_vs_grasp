@@ -1,0 +1,13 @@
+<launch>
+	<node pkg="push_vs_grasp" name="spawn_kinect_node" type="spawn_things.py" output="screen">
+	      <param name="model_filename" value ="$(find push_vs_grasp)/models/kinect/model.sdf"/>
+	      <param name="model_name" value ="kinect"/>
+	      <param name="world_frame" value ="world"/>
+	      <param name="x" value ="0.0"/>
+	      <param name="y" value ="-0.8"/>
+	      <param name="z" value ="1.5"/>
+	      <param name="roll" value ="0.0"/>
+	      <param name="pitch" value ="0.8"/>	
+	      <param name="yaw" value ="1.5707"/>
+	</node>
+</launch>

@@ -9,22 +9,20 @@
   <!-- Simulation -->
   <group if="$(arg sim)">
     
-    <!-- Gazebo -->
-    <include file="$(find push_vs_grasp)/launch/gazebo.launch"/>
+    <include file="$(find push_vs_grasp)/launch/gazebo.launch"/>    
     <include file="$(find push_vs_grasp)/launch/spawn_table.launch"/>
-
-    <!-- Robot -->
+    <include file="$(find push_vs_grasp)/launch/spawn_kinect.launch"/>
     <include file="$(find push_vs_grasp)/launch/ur5.launch"/>
+    <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>
+    <!--<include file="$(find kinect_segmentation)/launch/tabletop_perception.launch"/>-->
+
+    <node pkg="tf" type="static_transform_publisher" name="base_link_to_camera_tf" args="-1.1 0.0 0.48 -1.57 0 -2.37 base_link camera_link 10" />
     
     <!-- FT Sensor -->
     <!--<include file="$(find push_vs_grasp)/launch/spawn_ft_sensor.launch"/>-->
 
     <!-- Gripper -->
-    <!--<include file="$(find push_vs_grasp)/launch/spawn_gripper.launch"/>-->
-    
-    <!-- Tabletop Objects -->
-    <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>
-    
+    <!--<include file="$(find push_vs_grasp)/launch/spawn_gripper.launch"/>-->           
   </group>
 
   <!-- Real Robot -->
@@ -34,6 +32,9 @@
       <arg name="robot_ip" value="$(arg robot_ip)" />
     </include>
 
+    <include file="$(find openni_launch)/launch/openni.launch"/>
+    <include file="$(find kinect_segmentation)/launch/tabletop_perception.launch"/>
+    
   </group>
   
 

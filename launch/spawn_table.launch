@@ -1,5 +1,13 @@
 <launch>
-	<node pkg="push_vs_grasp" name="spawn_table_node" type="spawn_table.py" output="screen">
+	<node pkg="push_vs_grasp" name="spawn_table_node" type="spawn_things.py" output="screen">
 	      <param name="model_filename" value ="$(find push_vs_grasp)/models/table/model.sdf"/>
+	      <param name="model_name" value ="table"/>
+	      <param name="world_frame" value ="world"/>
+	      <param name="x" value ="0.0"/>
+	      <param name="y" value ="0.0"/>
+	      <param name="z" value ="0.0"/>
+	      <param name="roll" value ="0.0"/>
+	      <param name="pitch" value ="0.0"/>	
+	      <param name="yaw" value ="0.0"/>
 	</node>
 </launch>
