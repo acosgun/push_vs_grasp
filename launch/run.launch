@@ -14,7 +14,7 @@
     <include file="$(find push_vs_grasp)/launch/ur5.launch"/>
     <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>
     <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>
-    <!--<include file="$(find push_vs_grasp)/launch/spawn_gripper.launch"/>-->           
+        
   </group>
 
   <!-- real Robot -->
@@ -32,6 +32,8 @@
   </include>
 
   <!-- rviz -->
+  <!-- <include file="$(find push_vs_grasp)/launch/rviz.launch"> -->
+  <!-- <include file="$(find push_vs_grasp)/testing/ur5_and_gripper_moveit_config/launch/moveit_rviz.launch"> -->
   <include file="$(find push_vs_grasp)/launch/rviz.launch">
     <arg name="config" default="true"/>
   </include>

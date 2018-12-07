@@ -7,11 +7,9 @@
   <arg name="config" default="false" />
   <arg unless="$(arg config)" name="command_args" value="" />
   <arg     if="$(arg config)" name="command_args" value="-d $(find push_vs_grasp)/launch/rviz_config.rviz" />
-  
+
   <node name="$(anon rviz)" launch-prefix="$(arg launch_prefix)" pkg="rviz" type="rviz" respawn="false"
 	args="$(arg command_args)" output="screen">
-    <!-- TESTING -->
-    <!-- <rosparam command="load" file="$(find ur5_moveit_config)/config/kinematics.yaml"/> -->
     <rosparam command="load" file="$(find push_vs_grasp)/testing/ur5_and_gripper_moveit_config/config/kinematics.yaml"/>
   </node>
 

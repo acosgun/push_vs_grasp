@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="enabled" default="true" doc="none" />
+  
+  <param if="$(arg enabled)" name="ur5_and_gripper" command="$(find xacro)/xacro --inorder '$(find push_vs_grasp)/models/ur5_and_gripper/ur5_and_gripper.urdf.xacro'" />
+
+
+</launch>
