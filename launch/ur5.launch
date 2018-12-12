@@ -18,7 +18,7 @@
   <arg name="j5_init" default="0"/>
 
   
-  <arg name="limited" default="false"  doc="If true, limits joint range [-PI, PI] on all joints." />
+  <arg name="limited" default="true"  doc="If true, limits joint range [-PI, PI] on all joints." />
   
   <!-- send robot urdf to param server -->
   <include file="$(find push_vs_grasp)/launch/ur5_upload.launch">
