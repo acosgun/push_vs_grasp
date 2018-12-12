@@ -1,0 +1,13 @@
+<launch>
+  <node pkg="kinect_segmentation" name="scan_objects_node" type="scan_objects" output="screen">
+  </node>
+
+  <node pkg="push_vs_grasp" name="sim_pick_place_node" type="sim_pick_place_server.py" output="screen">
+  </node>
+
+  <node pkg="push_vs_grasp" name="task_planner_node" type="task_planner.py" output="screen">
+  </node>
+
+
+
+</launch>

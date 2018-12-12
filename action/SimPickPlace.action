@@ -1,0 +1,7 @@
+# Define the goal
+geometry_msgs/PointStamped obj_centroid
+---
+# Define the result
+uint32 result
+---
+# Define a feedback message
