@@ -148,6 +148,8 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(moveit_test src/moveit_test.cpp)
+add_executable(moveit_test_push src/move_it_test_push.cpp)
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -161,6 +163,9 @@ add_executable(moveit_test src/moveit_test.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(moveit_test
+   ${catkin_LIBRARIES}
+ )
+target_link_libraries(moveit_test_push
    ${catkin_LIBRARIES}
  )
 
