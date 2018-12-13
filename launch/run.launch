@@ -14,8 +14,8 @@
     <include file="$(find push_vs_grasp)/launch/ur5.launch"/>
     <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>
     <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>
+    <!--<include file="$(find push_vs_grasp)/launch/sim_pick_place.launch"/>-->
     <!--<include file="$(find push_vs_grasp)/launch/task_planner.launch"/>-->
-    <!--<node pkg="push_vs_grasp" name="sim_pick_place_node" type="sim_pick_place_server.py" output="screen"/>-->
   </group>
 
   <!-- real Robot -->

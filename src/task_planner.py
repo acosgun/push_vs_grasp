@@ -14,8 +14,8 @@ from kinect_segmentation.msg import ScanObjectsAction, ScanObjectsGoal
 if __name__ == '__main__':
     rospy.init_node('task_planner')
 
-    #sim_pick_place_client = actionlib.SimpleActionClient('sim_pick_place', SimPickPlaceAction)
-    #sim_pick_place_client.wait_for_server()
+    sim_pick_place_client = actionlib.SimpleActionClient('sim_pick_place', SimPickPlaceAction)
+    sim_pick_place_client.wait_for_server()
     scan_objects_client = actionlib.SimpleActionClient('scan_objects', ScanObjectsAction)
     scan_objects_client.wait_for_server()
 
@@ -27,14 +27,14 @@ if __name__ == '__main__':
         print('ScanObjectsAction timed-out')
 
     centroids = scan_objects_client.get_result().centroids
-    print ('Num Objects: ' + str(len(centroids)))
+    rospy.loginfo('Num Objects: ' + str(len(centroids)))
 
-    
+    pick_place_goal = SimPickPlaceGoal()
+    pick_place_goal.obj_centroid = centroids[0]    
+    sim_pick_place_client.send_goal(pick_place_goal)
 
-    #goal = SimPickPlaceGoal()
-    #sim_pick_place_client.send_goal(goal)    
-    #if sim_pick_place_client.wait_for_result(rospy.Duration.from_sec(5.0)):
-    #    print sim_pick_place_client.get_result()
-    #else:
-    #    sim_pick_place_client.cancel_all_goals()
-    #    print('        action timed-out')
+    if not sim_pick_place_client.wait_for_result(rospy.Duration.from_sec(5.0)):
+        sim_pick_place_client.cancel_all_goals()
+        print('SimPickPlaceAction timed-out')
+
+    print sim_pick_place_client.get_result()
