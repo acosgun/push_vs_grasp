@@ -23,7 +23,7 @@ class Push_objects {
 
     ros::NodeHandle nh_;
     ros::Subscriber MarkerArray;
-	//moveit::planning_interface::MoveGroupInterface move_group;//(PLANNING_GROUP);
+	boost::scoped_ptr<moveit::planning_interface::MoveGroupInterface> move_group;
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
     visualization_msgs::MarkerArray marker_array;
@@ -33,8 +33,8 @@ class Push_objects {
     }
 
     void init_objects(){
-	  //const std::string PLANNING_GROUP = "manipulator";
-      //move_group = new moveit::planning_interface::MoveGroupInterface::MoveGroupInterface(&PLANNING_GROUP);
+	  const std::string PLANNING_GROUP = "manipulator";
+	  move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
       srand (time(NULL));
     }
 
@@ -99,12 +99,11 @@ class Push_objects {
 
     void Push_Random (const   visualization_msgs::MarkerArrayConstPtr&  marker_array){
 	  
-	  const std::string PLANNING_GROUP = "manipulator";
-	  moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
-	  move_group.setPlanningTime(5);
+
+	  move_group->setPlanningTime(5);
 	  visualization_msgs::MarkerArray  marker_arrayXYZ = *marker_array; 
-      move_group.setStartStateToCurrentState();
-      geometry_msgs::Pose target_pose1 = move_group.getCurrentPose().pose;
+      move_group->setStartStateToCurrentState();
+      geometry_msgs::Pose target_pose1 = move_group->getCurrentPose().pose;
         
       //Randomly choose a point from the array
       bool Point_success = false;
@@ -134,32 +133,32 @@ class Push_objects {
 
         ROS_INFO_NAMED("tutorial", "Current Pose After move x:%f y:%f z:%f ", target_pose1.position.x, target_pose1.position.y, target_pose1.position.z);
 
-        move_group.setPoseTarget(target_pose1);
+        move_group->setPoseTarget(target_pose1);
 
-        bool success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+        bool success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
         if(success){
           //move to point
-          move_group.move();
+          move_group->move();
 
           target_pose1.position.y =  0.3;
-          move_group.setPoseTarget(target_pose1);
-          success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
+          move_group->setPoseTarget(target_pose1);
+          success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
           if(success){
             //Push to point
-            move_group.move();
+            move_group->move();
           }
 
           target_pose1.position.x = -0.4;
           target_pose1.position.y =  0.1;
           target_pose1.position.z =  0.4;
-          move_group.setPoseTarget(target_pose1);
+          move_group->setPoseTarget(target_pose1);
 
           success = false;
           for(int i = 0; i<3; i++){
             if(!success){
-              success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
+              success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
             }else{
-              move_group.move();
+              move_group->move();
               break;
             }
           }
