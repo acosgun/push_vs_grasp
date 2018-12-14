@@ -27,6 +27,8 @@ class Push_objects {
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
     visualization_msgs::MarkerArray marker_array;
+	std::vector<moveit_msgs::CollisionObject> collision_objects;
+	geometry_msgs::Pose target_pose;
 
     void init_subs(){
       MarkerArray = nh_.subscribe("/scan_objects/object_markers", 1, &Push_objects::Push_Random, this); 
@@ -40,8 +42,6 @@ class Push_objects {
 
     void init_collision_objects(){
     //###############################COLLISION OBJECTS INIT##########################################//
-      //Create Collision Objects
-      std::vector<moveit_msgs::CollisionObject> collision_objects;
 
       //Add table collision object
       moveit_msgs::CollisionObject Table_collision_object;
@@ -80,10 +80,10 @@ class Push_objects {
       Wall.dimensions[2] = 1;
       //specify Wall position/orientation
       geometry_msgs::Pose Wall_pose;
-        Wall_pose.orientation.w = 1.0;
+      Wall_pose.orientation.w = 1.0;
       Wall_pose.position.x = 0.25 + 0.1; //Distance to edge of wall + gap between wall and base_link
-        Wall_pose.position.y = 0;
-        Wall_pose.position.z = 0.5;
+	  Wall_pose.position.y = 0;
+      Wall_pose.position.z = 0.5;
       //Create Wall collision object
       Wall_collision_object.primitives.push_back(Wall);
       Wall_collision_object.primitive_poses.push_back(Wall_pose);
@@ -96,74 +96,59 @@ class Push_objects {
       planning_scene_interface.addCollisionObjects(collision_objects);
     }
 
+	void Plane_Cartesian(){
+		
+	}
 
     void Push_Random (const   visualization_msgs::MarkerArrayConstPtr&  marker_array){
-	  
 
 	  move_group->setPlanningTime(5);
 	  visualization_msgs::MarkerArray  marker_arrayXYZ = *marker_array; 
       move_group->setStartStateToCurrentState();
-      geometry_msgs::Pose target_pose1 = move_group->getCurrentPose().pose;
+      target_pose= move_group->getCurrentPose().pose;
         
       //Randomly choose a point from the array
-      bool Point_success = false;
       int Marker_indx = rand() % (marker_arrayXYZ.markers.size() + 1);
       float X_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.x;
       float Y_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.y;
       float Z_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.z;
 
-      //make sure it's not the base position
-      for(int i = 0; i<5; i++){ 
-        if(sqrt(X_pos*X_pos+Y_pos*Y_pos+Z_pos*Z_pos) < 0.2){
-          Marker_indx = rand() % (marker_arrayXYZ.markers.size()) + 1;
-          X_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.x;
-          Y_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.y;
-          Z_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.z;
-          std::cout << "Robot_base!" << std::endl;
-        }else{
-          Point_success = true;
-          break;
-        } 
-      }
+      target_pose.position.x = X_pos;
+      target_pose.position.y = Y_pos - 0.1;
+      target_pose.position.z = Z_pos;
 
-      if(Point_success){
-        target_pose1.position.x = X_pos;
-        target_pose1.position.y = Y_pos - 0.1;
-        target_pose1.position.z = Z_pos;
+      ROS_INFO_NAMED("tutorial", "Current Pose After move x:%f y:%f z:%f ", target_pose.position.x, target_pose.position.y, target_pose.position.z);
 
-        ROS_INFO_NAMED("tutorial", "Current Pose After move x:%f y:%f z:%f ", target_pose1.position.x, target_pose1.position.y, target_pose1.position.z);
+      move_group->setPoseTarget(target_pose);
 
-        move_group->setPoseTarget(target_pose1);
+      bool success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+      if(success){
+        //move to point
+        move_group->move();
 
-        bool success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+        target_pose.position.y =  0.3;
+        move_group->setPoseTarget(target_pose);
+        success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
         if(success){
-          //move to point
-          move_group->move();
+         //Push to point
+         move_group->move();
+    	}
 
-          target_pose1.position.y =  0.3;
-          move_group->setPoseTarget(target_pose1);
-          success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
-          if(success){
-            //Push to point
+		target_pose.position.x = -0.4;
+    	target_pose.position.y =  0.1;
+        target_pose.position.z =  0.4;
+        move_group->setPoseTarget(target_pose);
+
+        success = false;
+        for(int i = 0; i<3; i++){
+          if(!success){
+            success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
+          }else{
             move_group->move();
+            break;
           }
-
-          target_pose1.position.x = -0.4;
-          target_pose1.position.y =  0.1;
-          target_pose1.position.z =  0.4;
-          move_group->setPoseTarget(target_pose1);
-
-          success = false;
-          for(int i = 0; i<3; i++){
-            if(!success){
-              success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
-            }else{
-              move_group->move();
-              break;
-            }
-          }
-        }	
-      } else 		std::cout << "No Objects!" << std::endl;
+        }
+	  }
 	  sleep(1);
     }
     
