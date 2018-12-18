@@ -7,6 +7,8 @@
 // ROS
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf/transform_datatypes.h>
 
 //moveit
 #include <moveit/move_group_interface/move_group_interface.h>
@@ -23,12 +25,14 @@ class Push_objects {
 
     ros::NodeHandle nh_;
     ros::Subscriber MarkerArray;
-	boost::scoped_ptr<moveit::planning_interface::MoveGroupInterface> move_group;
+	  boost::scoped_ptr<moveit::planning_interface::MoveGroupInterface> move_group;
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
     visualization_msgs::MarkerArray marker_array;
-	std::vector<moveit_msgs::CollisionObject> collision_objects;
-	geometry_msgs::Pose target_pose;
+	  std::vector<moveit_msgs::CollisionObject> collision_objects;
+	  geometry_msgs::Pose target_pose;
+	  geometry_msgs::Pose goal_pose;
+
 
     void init_subs(){
       MarkerArray = nh_.subscribe("/scan_objects/object_markers", 1, &Push_objects::Push_Random, this); 
@@ -42,7 +46,6 @@ class Push_objects {
 
     void init_collision_objects(){
     //###############################COLLISION OBJECTS INIT##########################################//
-
       //Add table collision object
       moveit_msgs::CollisionObject Table_collision_object;
       Table_collision_object.header.frame_id = "base_link";//move_group.getPlanningFrame();
@@ -81,8 +84,8 @@ class Push_objects {
       //specify Wall position/orientation
       geometry_msgs::Pose Wall_pose;
       Wall_pose.orientation.w = 1.0;
-      Wall_pose.position.x = 0.25 + 0.1; //Distance to edge of wall + gap between wall and base_link
-	  Wall_pose.position.y = 0;
+      Wall_pose.position.x = 0.25 + 0.2; //Distance to edge of wall + gap between wall and base_link
+	    Wall_pose.position.y = 0;
       Wall_pose.position.z = 0.5;
       //Create Wall collision object
       Wall_collision_object.primitives.push_back(Wall);
@@ -90,67 +93,170 @@ class Push_objects {
       Wall_collision_object.operation = Wall_collision_object.ADD;
       //Add Table collision object to collision objects
       collision_objects.push_back(Wall_collision_object);
-
       //Add vector of collision bjects to the "world"
       sleep(2);
       planning_scene_interface.addCollisionObjects(collision_objects);
     }
 
-	void Plane_Cartesian(){
-		
+	bool PlanCartesian_ToPoint(){
+		std::cout << "PlanCartesian_ToPoint NOW!" << std::endl;
+		move_group->setStartStateToCurrentState();
+		geometry_msgs::Pose WayPoint = move_group->getCurrentPose().pose;
+  		std::vector<geometry_msgs::Pose> WayPoints;
+
+		float Y_offset = 0;
+		if (goal_pose.position.y > target_pose.position.y){
+			Y_offset = -0.1;
+		}else Y_offset = 0.1;
+
+		//plan to above object
+  		WayPoint.position.x = target_pose.position.x - 0.1;
+  		WayPoint.position.y = target_pose.position.y + Y_offset;
+  		WayPoint.position.z = target_pose.position.z + 0.1;
+ 		  WayPoints.push_back(WayPoint);  // down
+
+		//plan to next to object
+  		WayPoint.position.z = target_pose.position.z;
+  		WayPoints.push_back(WayPoint);  // right
+
+		//create cartesian path trajectory msg
+  		moveit_msgs::RobotTrajectory trajectory;
+  		const double jump_threshold = 0.0;
+  		const double eef_step = 0.05;
+		  double fraction = move_group->computeCartesianPath(WayPoints, eef_step, jump_threshold, trajectory, true);
+/* 
+		//Create a RobotTrajectory object  - method to use if errors with empty velocity vectors 
+		robot_trajectory::RobotTrajectory rt(move_group->getCurrentState()->getRobotModel(), "manipulator");
+		rt.setRobotTrajectoryMsg(*move_group->getCurrentState(), trajectory);
+
+		//Create a IterativeParabolicTimeParameterization object
+  		trajectory_processing::IterativeParabolicTimeParameterization iptp;
+
+		// Get RobotTrajectory_msg from RobotTrajectory
+  		rt.getRobotTrajectoryMsg(trajectory);
+
+		bool success = iptp.computeTimeStamps(rt);;
+*/
+		std::cout << fraction << std::endl;
+		bool success = false;
+  		// Plan the trajectory
+		if (fraction == 1){
+  		  my_plan.trajectory_ = trajectory;
+		  success = true;
+		}
+		return success;
 	}
 
-    void Push_Random (const   visualization_msgs::MarkerArrayConstPtr&  marker_array){
+  bool PlanCartesian_Push(){
+    		std::cout << "PlanCartesian_Push NOW!" << std::endl;
 
+    geometry_msgs::Pose StartPoint = move_group->getCurrentPose().pose;
+
+    geometry_msgs::Pose WayPoint = StartPoint;
+  	std::vector<geometry_msgs::Pose> WayPoints;
+
+    float Xdiff = (goal_pose.position.x - StartPoint.position.x);
+    float Ydiff = (goal_pose.position.y - StartPoint.position.y);
+    float GradM = (Ydiff/Xdiff);
+    float Yoffset = goal_pose.position.y - GradM * goal_pose.position.x;
+    int steps = 1; 
+
+    float Zangle = - tanh(GradM);
+    std::cout << "Zangle "<<180*(Zangle/M_PI) << std::endl;
+
+    //float Zangle = M_PI/2;
+    tf::Quaternion q_rot, q_orig,q_new;
+    q_rot.setRPY(0,0,Zangle);
+    tf::quaternionMsgToTF(WayPoint.orientation , q_orig);
+    q_new = q_rot*q_orig;  // Calculate the new orientation
+    q_new.normalize();
+    tf::quaternionTFToMsg(q_new, WayPoint.orientation);
+
+    WayPoints.push_back(WayPoint);  // down
+
+    for(int i = 0; i<steps; i++){
+      WayPoint.position.x = StartPoint.position.x + (Xdiff/(steps+1));
+      WayPoint.position.y = (WayPoint.position.x * GradM) + Yoffset;
+      WayPoints.push_back(WayPoint);  // down
+    }
+
+    WayPoint.position.x = goal_pose.position.x;
+    WayPoint.position.y = goal_pose.position.y;
+    WayPoint.position.z = goal_pose.position.z;
+
+    WayPoints.push_back(goal_pose);  // down
+
+		//create cartesian path trajectory msg
+  	moveit_msgs::RobotTrajectory trajectory;
+  	const double jump_threshold = 0.0;
+  	const double eef_step = 0.05;
+		double fraction = move_group->computeCartesianPath(WayPoints, eef_step, jump_threshold, trajectory, true);
+    bool success = false;
+		std::cout << fraction << std::endl;
+
+    if (fraction == 1){
+  		  my_plan.trajectory_ = trajectory;
+		  success = true;
+		}
+		return success;
+
+  }
+
+  void Push_Random (const   visualization_msgs::MarkerArrayConstPtr&  marker_array){
+	
 	  move_group->setPlanningTime(5);
+    move_group->setMaxVelocityScalingFactor(0.1);
 	  visualization_msgs::MarkerArray  marker_arrayXYZ = *marker_array; 
-      move_group->setStartStateToCurrentState();
-      target_pose= move_group->getCurrentPose().pose;
-        
-      //Randomly choose a point from the array
-      int Marker_indx = rand() % (marker_arrayXYZ.markers.size() + 1);
-      float X_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.x;
-      float Y_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.y;
-      float Z_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.z;
+    move_group->setStartStateToCurrentState();
+    target_pose = move_group->getCurrentPose().pose;
+	  //create goal pose
+    goal_pose = target_pose;
+	  goal_pose.position.x = -0.4;
+	  goal_pose.position.y = 0.4;
+	  goal_pose.position.z = 0.1;
 
-      target_pose.position.x = X_pos;
-      target_pose.position.y = Y_pos - 0.1;
-      target_pose.position.z = Z_pos;
+    //Randomly choose a point from the array
+    int Marker_indx = rand() % (marker_arrayXYZ.markers.size() + 1);
+    float X_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.x;
+    float Y_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.y;
+    float Z_pos = marker_arrayXYZ.markers[Marker_indx].pose.position.z;
 
-      ROS_INFO_NAMED("tutorial", "Current Pose After move x:%f y:%f z:%f ", target_pose.position.x, target_pose.position.y, target_pose.position.z);
+    target_pose.position.x = X_pos;
+    target_pose.position.y = Y_pos;
+    target_pose.position.z = Z_pos;
 
+
+    ROS_INFO_NAMED("tutorial", "Current Pose After move x:%f y:%f z:%f ", target_pose.position.x, target_pose.position.y, target_pose.position.z);
+
+	
+    bool success = PlanCartesian_ToPoint();
+    if(success){
+      //move to point
+      move_group->execute(my_plan);
+		  //push to goal
+      success = PlanCartesian_Push();
+      if(success){
+        //Push to point
+        move_group->execute(my_plan);
+    	}
+		  //go home
+		  target_pose.position.x = -0.4;
+    	target_pose.position.y =  0.1;
+      target_pose.position.z =  0.4;
       move_group->setPoseTarget(target_pose);
 
-      bool success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-      if(success){
-        //move to point
-        move_group->move();
-
-        target_pose.position.y =  0.3;
-        move_group->setPoseTarget(target_pose);
-        success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
-        if(success){
-         //Push to point
-         move_group->move();
-    	}
-
-		target_pose.position.x = -0.4;
-    	target_pose.position.y =  0.1;
-        target_pose.position.z =  0.4;
-        move_group->setPoseTarget(target_pose);
-
-        success = false;
-        for(int i = 0; i<3; i++){
-          if(!success){
-            success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
-          }else{
-            move_group->move();
-            break;
-          }
+      success = false;
+      for(int i = 0; i<3; i++){
+        if(!success){
+          success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
+        }else{
+          move_group->move();
+          break;
         }
+      }
 	  }
-	  sleep(1);
-    }
+	sleep(1);
+  }
     
   public:
 
