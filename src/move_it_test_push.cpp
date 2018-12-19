@@ -32,6 +32,7 @@ class Push_objects {
 	  std::vector<moveit_msgs::CollisionObject> collision_objects;
 	  geometry_msgs::Pose target_pose;
 	  geometry_msgs::Pose goal_pose;
+    geometry_msgs::Pose home_pose;
 
 
     void init_subs(){
@@ -39,9 +40,17 @@ class Push_objects {
     }
 
     void init_objects(){
-	  const std::string PLANNING_GROUP = "manipulator";
-	  move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
+	    const std::string PLANNING_GROUP = "manipulator";
+	    move_group.reset(new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP));
       srand (time(NULL));
+
+      home_pose.position.x = -0.4;
+      home_pose.position.y = 0.1;
+      home_pose.position.z = 0.4;
+      home_pose.orientation.w = 0;
+      home_pose.orientation.x = 0;
+      home_pose.orientation.y = 1;
+      home_pose.orientation.z = 0;
     }
 
     void init_collision_objects(){
@@ -160,24 +169,21 @@ class Push_objects {
     float GradM = (Ydiff/Xdiff);
     float Yoffset = goal_pose.position.y - GradM * goal_pose.position.x;
     int steps = 1; 
+    float Zangle = - tanh(1/GradM);
 
-    float Zangle = - tanh(GradM);
-    std::cout << "Zangle "<<180*(Zangle/M_PI) << std::endl;
-
-    //float Zangle = M_PI/2;
     tf::Quaternion q_rot, q_orig,q_new;
     q_rot.setRPY(0,0,Zangle);
+
     tf::quaternionMsgToTF(WayPoint.orientation , q_orig);
     q_new = q_rot*q_orig;  // Calculate the new orientation
     q_new.normalize();
     tf::quaternionTFToMsg(q_new, WayPoint.orientation);
 
-    WayPoints.push_back(WayPoint);  // down
-
+    WayPoints.push_back(WayPoint); 
     for(int i = 0; i<steps; i++){
       WayPoint.position.x = StartPoint.position.x + (Xdiff/(steps+1));
       WayPoint.position.y = (WayPoint.position.x * GradM) + Yoffset;
-      WayPoints.push_back(WayPoint);  // down
+      WayPoints.push_back(WayPoint); 
     }
 
     WayPoint.position.x = goal_pose.position.x;
@@ -202,6 +208,43 @@ class Push_objects {
 
   }
 
+  bool PlanCartesian_ToHome(){
+    std::cout << "PlanCartesian_ToHome NOW!" << std::endl;
+
+    geometry_msgs::Pose StartPoint = move_group->getCurrentPose().pose;
+
+    geometry_msgs::Pose WayPoint = StartPoint;
+  	std::vector<geometry_msgs::Pose> WayPoints;
+
+    WayPoint.position.z = 0.25;
+    WayPoints.push_back(WayPoint);
+
+    WayPoint.position.y = 0.1;
+    WayPoints.push_back(WayPoint);
+
+    WayPoints.push_back(home_pose);  // down
+
+		//create cartesian path trajectory msg
+  	moveit_msgs::RobotTrajectory trajectory;
+  	const double jump_threshold = 0.0;
+  	const double eef_step = 0.05;
+    bool success = false;
+    double fraction = 0.0;
+    for(int i = 0; i<5;i++){
+      fraction = move_group->computeCartesianPath(WayPoints, eef_step, jump_threshold, trajectory, true);
+      std::cout <<"home: "<< fraction <<" attempt: "<<i<< std::endl;
+
+      if (fraction == 1){
+        my_plan.trajectory_ = trajectory;
+        success = true;
+        break;
+      }
+
+    }
+
+    return success;
+  }
+
   void Push_Random (const   visualization_msgs::MarkerArrayConstPtr&  marker_array){
 	
 	  move_group->setPlanningTime(5);
@@ -210,9 +253,10 @@ class Push_objects {
     move_group->setStartStateToCurrentState();
     target_pose = move_group->getCurrentPose().pose;
 	  //create goal pose
+    std::cout<<"start ori: w:"<<target_pose.orientation.w<<" x:"<<target_pose.orientation.x<<" y:"<<target_pose.orientation.y<<" z:"<<target_pose.orientation.z<<std::endl;
     goal_pose = target_pose;
 	  goal_pose.position.x = -0.4;
-	  goal_pose.position.y = 0.4;
+	  goal_pose.position.y = 0.5;
 	  goal_pose.position.z = 0.1;
 
     //Randomly choose a point from the array
@@ -239,21 +283,11 @@ class Push_objects {
         //Push to point
         move_group->execute(my_plan);
     	}
-		  //go home
-		  target_pose.position.x = -0.4;
-    	target_pose.position.y =  0.1;
-      target_pose.position.z =  0.4;
-      move_group->setPoseTarget(target_pose);
-
-      success = false;
-      for(int i = 0; i<3; i++){
-        if(!success){
-          success = (move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS); 
-        }else{
-          move_group->move();
-          break;
-        }
-      }
+      success = PlanCartesian_ToHome();
+      if(success){
+        //go to home
+        move_group->execute(my_plan);
+    	}
 	  }
 	sleep(1);
   }
