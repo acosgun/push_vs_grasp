@@ -21,6 +21,9 @@ from gazebo_msgs.srv import *
 #CUSTOM
 from push_vs_grasp.msg import SimPickPlaceAction
 
+#GLOBAL VARIABLES
+gripperOffset = 0.09
+
 class SimPickPlaceServer:
   def __init__(self):
     rospy.wait_for_service("gazebo/get_model_state")
@@ -59,7 +62,7 @@ class SimPickPlaceServer:
     pose_goal = geometry_msgs.msg.Pose()
     pose_goal.position.x = x
     pose_goal.position.y = y
-    pose_goal.position.z = z
+    pose_goal.position.z = z + gripperOffset
     quat = quaternion_from_euler(0, 1.57, 0)
     pose_goal.orientation.x = quat[0]
     pose_goal.orientation.y = quat[1]
