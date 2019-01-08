@@ -28,7 +28,6 @@ class Push_objects {
   private:
 
     ros::NodeHandle nh_;
-    //ros::Subscriber PoseArray;
 	  boost::scoped_ptr<moveit::planning_interface::MoveGroupInterface> move_group;
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
@@ -40,11 +39,6 @@ class Push_objects {
 	  geometry_msgs::Pose goal_pose;
     geometry_msgs::Pose home_pose;
 
-/*
-    void init_subs(){
-      PoseArray = nh_.subscribe("/scan_objects/object_markers", 1, &Push_objects::Push_Object, this); 
-    }
-*/
     void init_actionlib(){
         as_.start();
         ROS_INFO("Push Server ON");
@@ -318,7 +312,7 @@ class Push_objects {
       target_pose.position.x = goalXYZ.point.x;
       target_pose.position.y = goalXYZ.point.y;
       target_pose.position.z = goalXYZ.point.z;
-
+      bool success;
 /*
       //Randomly choose a point from the array
       int Marker_indx = rand() % (static_cast<int>(Centroids.size()) + 1);
@@ -327,13 +321,13 @@ class Push_objects {
       target_pose.position.z = Centroids[Marker_indx].position.z;
 */
 
-      bool success = PlanCartesian_ToPoint();
+      success = PlanCartesian_ToPoint();
+      Remove_collision_Items();
       result_.result = success;
       if(success){
         //move to point
         move_group->execute(my_plan);
         //push to goal
-        Remove_collision_Items();
         success = PlanCartesian_Push();
         result_.result = success;
         if(success){
@@ -347,8 +341,6 @@ class Push_objects {
           move_group->execute(my_plan);
           as_.setSucceeded(result_);
         }
-      }else{
-        as_.setAborted(result_);
       }
     sleep(1);
     }
@@ -357,7 +349,6 @@ class Push_objects {
 
     Push_objects(ros::NodeHandle* nodehandle): nh_(*nodehandle), as_(nh_, "/Pushing", boost::bind(&Push_objects::Push_Object, this, _1),false) {
       init_objects();
-      //init_subs();
       init_actionlib();
       init_collision_objects();
     }

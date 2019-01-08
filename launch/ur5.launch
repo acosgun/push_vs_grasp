@@ -12,9 +12,9 @@
   <!-- Init Robot State -->
   <arg name="j0_init" default="0"/>
   <arg name="j1_init" default="-1.57079633"/>
-  <arg name="j2_init" default="0"/>
-  <arg name="j3_init" default="-1.57079633"/>
-  <arg name="j4_init" default="0"/>
+  <arg name="j2_init" default="-1.57079633"/>
+  <arg name="j3_init" default="-3.14"/>
+  <arg name="j4_init" default="1.57079633"/>
   <arg name="j5_init" default="0"/>
 
   
