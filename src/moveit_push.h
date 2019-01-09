@@ -54,7 +54,7 @@ class Push_objects {
       home_pose.position.z = 0.4;
       home_pose.orientation.w = 0;
       home_pose.orientation.x = 0;
-      home_pose.orientation.y = 1;
+      home_pose.orientation.y = 0;
       home_pose.orientation.z = 0;
     }
 
