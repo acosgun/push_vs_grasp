@@ -7,7 +7,7 @@ Panels:
         - /PointCloud21
         - /TF1
       Splitter Ratio: 0.5
-    Tree Height: 414
+    Tree Height: 362
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -48,11 +48,14 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Class: moveit_rviz_plugin/MotionPlanning
+    - Acceleration_Scaling_Factor: 1
+      Class: moveit_rviz_plugin/MotionPlanning
       Enabled: true
       Move Group Namespace: ""
       MoveIt_Allow_Approximate_IK: false
       MoveIt_Allow_External_Program: false
+      MoveIt_Allow_Replanning: false
+      MoveIt_Allow_Sensor_Positioning: false
       MoveIt_Goal_Tolerance: 0
       MoveIt_Planning_Attempts: 10
       MoveIt_Planning_Time: 5
@@ -93,6 +96,21 @@ Visualization Manager:
             Show Trail: false
             Value: true
           forearm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          gripper1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          gripper2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          pusher:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -194,6 +212,21 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          gripper1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          gripper2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          pusher:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           shoulder_link:
             Alpha: 1
             Show Axes: false
@@ -231,6 +264,7 @@ Visualization Manager:
         Show Robot Collision: false
         Show Robot Visual: true
       Value: true
+      Velocity_Scaling_Factor: 1
     - Class: rviz/Image
       Enabled: false
       Image Topic: /camera/depth/image_raw
@@ -253,7 +287,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: FlatColor
+      Color Transformer: RGB8
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -268,7 +302,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.00100000005
       Style: Flat Squares
-      Topic: /camera/depth/points
+      Topic: /camera/depth_registered/points
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -288,6 +322,12 @@ Visualization Manager:
           Value: false
         forearm_link:
           Value: false
+        gripper1:
+          Value: true
+        gripper2:
+          Value: true
+        pusher:
+          Value: true
         shoulder_link:
           Value: false
         tool0:
@@ -305,8 +345,8 @@ Visualization Manager:
       Marker Scale: 1
       Name: TF
       Show Arrows: false
-      Show Axes: true
-      Show Names: true
+      Show Axes: false
+      Show Names: false
       Tree:
         world:
           base_link:
@@ -321,17 +361,21 @@ Visualization Manager:
                     wrist_2_link:
                       wrist_3_link:
                         ee_link:
-                          {}
+                          pusher:
+                            gripper1:
+                              {}
+                            gripper2:
+                              {}
                         tool0:
                           {}
       Update Interval: 0
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /segment_tabletop_node/object_markers
+      Marker Topic: /scan_objects/object_markers
       Name: MarkerArray
       Namespaces:
-        my_namespace: true
+        "": true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -374,10 +418,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.380396366
+      Pitch: 0.174797475
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.23539543
+      Yaw: 3.29540062
     Saved: ~
 Window Geometry:
   Displays:
@@ -401,5 +445,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 960
-  X: 2880
+  X: 960
   Y: 24

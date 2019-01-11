@@ -10,12 +10,14 @@
   <group if="$(arg sim)">    
     <include file="$(find push_vs_grasp)/launch/gazebo.launch"/>    
     <include file="$(find push_vs_grasp)/launch/spawn_table.launch"/>
-    <include file="$(find push_vs_grasp)/launch/spawn_kinect.launch"/>
+    <!-- <include file="$(find push_vs_grasp)/launch/spawn_kinect.launch"/> -->
+    <!-- <include file="$(find openni_launch)/launch/openni.launch"/> -->
+    <include file="$(find push_vs_grasp)/launch/openni.launch"/>
     <include file="$(find push_vs_grasp)/launch/ur5.launch"/>
-    <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>
+    <!-- <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/> -->
     <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>
-    <!--<include file="$(find push_vs_grasp)/launch/sim_pick_place.launch"/>-->
-    <!--<include file="$(find push_vs_grasp)/launch/task_planner.launch"/>-->
+    <!-- <include file="$(find push_vs_grasp)/launch/sim_pick_place.launch"/>
+    <include file="$(find push_vs_grasp)/launch/task_planner.launch"/> -->
   </group>
 
   <!-- real Robot -->

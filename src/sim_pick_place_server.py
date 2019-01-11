@@ -22,7 +22,7 @@ from gazebo_msgs.srv import *
 from push_vs_grasp.msg import SimPickPlaceAction
 
 #GLOBAL VARIABLES
-gripperOffset = 0.09
+gripperOffset = 0.13
 
 class SimPickPlaceServer:
   def __init__(self):
