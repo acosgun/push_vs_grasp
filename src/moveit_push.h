@@ -9,6 +9,8 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf/transform_datatypes.h>
+#include <actionlib/server/simple_action_server.h>
+
 
 //moveit
 #include <moveit/move_group_interface/move_group_interface.h>
@@ -19,26 +21,28 @@
 #include <moveit_msgs/CollisionObject.h>
 #include <moveit_visual_tools/moveit_visual_tools.h>
 
+//Custom
+#include <push_vs_grasp/MoveItPushAction.h>
 
 class Push_objects {
   private:
 
     ros::NodeHandle nh_;
-    ros::Subscriber MarkerArray;
 	  boost::scoped_ptr<moveit::planning_interface::MoveGroupInterface> move_group;
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-    visualization_msgs::MarkerArray marker_array;
+    actionlib::SimpleActionServer<push_vs_grasp::MoveItPushAction> as_;
+
 	  std::vector<moveit_msgs::CollisionObject> Scene_collision_objects;
     std::vector<moveit_msgs::CollisionObject> Item_collision_objects;
-	  geometry_msgs::Pose target_pose;
+    geometry_msgs::Pose target_pose;
 	  geometry_msgs::Pose goal_pose;
     geometry_msgs::Pose home_pose;
 
-
-    void init_subs(){
-      MarkerArray = nh_.subscribe("/scan_objects/object_markers", 1, &Push_objects::Push_Random, this); 
-    }
+    void init_actionlib(){
+        as_.start();
+        ROS_INFO("Push Server ON");
+    }  
 
     void init_objects(){
 	    const std::string PLANNING_GROUP = "manipulator";
@@ -50,7 +54,7 @@ class Push_objects {
       home_pose.position.z = 0.4;
       home_pose.orientation.w = 0;
       home_pose.orientation.x = 0;
-      home_pose.orientation.y = 1;
+      home_pose.orientation.y = 0;
       home_pose.orientation.z = 0;
     }
 
@@ -108,7 +112,7 @@ class Push_objects {
       planning_scene_interface.addCollisionObjects(Scene_collision_objects);
     }
   
-    void add_collision_Items(std::vector<geometry_msgs::Pose> Centroids){
+    void add_collision_Items(std::vector<geometry_msgs::PointStamped> Centroids){
       //Add Items as collision objects
       moveit_msgs::CollisionObject Item_collision_object;
       Item_collision_object.header.frame_id = "base_link";
@@ -124,9 +128,9 @@ class Push_objects {
       for(int i = 0; i < static_cast<int>(Centroids.size()); i++){
         Item_collision_object.id = i;
         Item_pose.orientation.w = 1.0;
-        Item_pose.position.x = Centroids[i].position.x;
-        Item_pose.position.y = Centroids[i].position.y;
-        Item_pose.position.z = Centroids[i].position.z;
+        Item_pose.position.x = Centroids[i].point.x;
+        Item_pose.position.y = Centroids[i].point.y;
+        Item_pose.position.z = Centroids[i].point.z;
 
         Item_collision_object.primitives.push_back(Item);
         Item_collision_object.primitive_poses.push_back(Item_pose);
@@ -285,53 +289,57 @@ class Push_objects {
       return success;
     }
 
-    void Push_Random (const visualization_msgs::MarkerArrayConstPtr&  marker_array){
+    void Push_Object (const actionlib::SimpleActionServer<push_vs_grasp::MoveItPushAction>::GoalConstPtr& goal){
     
-      move_group->setPlanningTime(5);
-      move_group->setMaxVelocityScalingFactor(0.1);
-      visualization_msgs::MarkerArray  marker_arrayXYZ = *marker_array; 
+
+      geometry_msgs::PointStamped goalXYZ = goal->obj_centroid; 
+      std::vector<geometry_msgs::PointStamped> Centroids = goal->all_centroids;
+      push_vs_grasp::MoveItPushResult result_;
+
       move_group->setStartStateToCurrentState();
       target_pose = move_group->getCurrentPose().pose;
-
-      std::vector<geometry_msgs::Pose> Centroids;
-      geometry_msgs::Pose Cendtroid;
-
-      for(int i = 0; i < static_cast<int>(marker_arrayXYZ.markers.size()); i++){
-        Cendtroid.position.x = marker_arrayXYZ.markers[i].pose.position.x;
-        Cendtroid.position.y = marker_arrayXYZ.markers[i].pose.position.y;
-        Cendtroid.position.z = marker_arrayXYZ.markers[i].pose.position.z;
-        Cendtroid.orientation.w = 1;
-        Centroids.push_back(Cendtroid);
-      }
+      move_group->setPlanningTime(5);
+      move_group->setMaxVelocityScalingFactor(0.1);
 
       add_collision_Items(Centroids);
+
       //create goal pose
       goal_pose = target_pose;
       goal_pose.position.x = -0.4;
       goal_pose.position.y = 0.5;
       goal_pose.position.z = 0.1;
 
+      target_pose.position.x = goalXYZ.point.x;
+      target_pose.position.y = goalXYZ.point.y;
+      target_pose.position.z = goalXYZ.point.z;
+      bool success;
+/*
       //Randomly choose a point from the array
       int Marker_indx = rand() % (static_cast<int>(Centroids.size()) + 1);
       target_pose.position.x = Centroids[Marker_indx].position.x;
       target_pose.position.y = Centroids[Marker_indx].position.y;
       target_pose.position.z = Centroids[Marker_indx].position.z;
-    
-      bool success = PlanCartesian_ToPoint();
+*/
+
+      success = PlanCartesian_ToPoint();
+      Remove_collision_Items();
+      result_.result = success;
       if(success){
         //move to point
         move_group->execute(my_plan);
         //push to goal
-        Remove_collision_Items();
         success = PlanCartesian_Push();
+        result_.result = success;
         if(success){
           //Push to point
           move_group->execute(my_plan);
         }
         success = PlanCartesian_ToHome();
+        result_.result = success;
         if(success){
           //go to home
           move_group->execute(my_plan);
+          as_.setSucceeded(result_);
         }
       }
     sleep(1);
@@ -339,22 +347,10 @@ class Push_objects {
     
   public:
 
-    Push_objects(ros::NodeHandle* nodehandle):nh_(*nodehandle) {
+    Push_objects(ros::NodeHandle* nodehandle): nh_(*nodehandle), as_(nh_, "/Pushing", boost::bind(&Push_objects::Push_Object, this, _1),false) {
       init_objects();
-      init_subs();
+      init_actionlib();
       init_collision_objects();
     }
     
 };
-
-
-int main(int argc, char** argv) 
-{
-  ros::init(argc, argv, "Push_Object_node");
-  ros::NodeHandle node_handle("~");
-  Push_objects PO(&node_handle);
-  ros::AsyncSpinner spinner(2);
-	spinner.start();
-	ros::waitForShutdown();
-  return 0;
-} 
