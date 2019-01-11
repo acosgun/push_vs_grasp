@@ -22,6 +22,8 @@ find_package(catkin REQUIRED COMPONENTS
   rviz_visual_tools
   genmsg
   actionlib_msgs
+  actionlib
+  robotiq_2f_gripper_control
 )
 
 ## System dependencies are found with CMake's conventions
@@ -77,7 +79,7 @@ add_action_files(
   action
   FILES
   SimPickPlace.action
-#   Action2.action
+  MoveItPush.action
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -147,9 +149,8 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(moveit_test src/moveit_test.cpp)
-add_executable(moveit_test_push src/move_it_test_push.cpp)
-
+add_executable(moveit_push_client src/Moveit_push_client.cpp)
+add_executable(moveit_push_server src/moveit_push_server.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -162,10 +163,10 @@ add_executable(moveit_test_push src/move_it_test_push.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(moveit_test
+target_link_libraries(moveit_push_server
    ${catkin_LIBRARIES}
  )
-target_link_libraries(moveit_test_push
+target_link_libraries(moveit_push_client
    ${catkin_LIBRARIES}
  )
 
