@@ -52,7 +52,7 @@ class Push_objects {
       home_pose.position.x = -0.4;
       home_pose.position.y = 0.1;
       home_pose.position.z = 0.4;
-      home_pose.orientation.w = 0;
+      home_pose.orientation.w = 1;
       home_pose.orientation.x = 0;
       home_pose.orientation.y = 0;
       home_pose.orientation.z = 0;
@@ -158,15 +158,18 @@ class Push_objects {
       move_group->setStartStateToCurrentState();
       geometry_msgs::Pose WayPoint = move_group->getCurrentPose().pose;
       std::vector<geometry_msgs::Pose> WayPoints;
-
       float Y_offset = 0;
       if (goal_pose.position.y > target_pose.position.y){
         Y_offset = -0.1;
       }else Y_offset = 0.1;
 
       //plan to above object
-        WayPoint.position.x = target_pose.position.x - 0.1;
         WayPoint.position.y = target_pose.position.y + Y_offset;
+        WayPoints.push_back(WayPoint);  // down
+
+        WayPoint.position.x = target_pose.position.x;
+        WayPoints.push_back(WayPoint);  // down
+
         WayPoint.position.z = target_pose.position.z + 0.1;
         WayPoints.push_back(WayPoint);  // down
 
@@ -261,10 +264,8 @@ class Push_objects {
       geometry_msgs::Pose WayPoint = StartPoint;
       std::vector<geometry_msgs::Pose> WayPoints;
 
-      WayPoint.position.z = 0.25;
-      WayPoints.push_back(WayPoint);
-
       WayPoint.position.y = 0.1;
+      WayPoint.position.z = 0.25;
       WayPoints.push_back(WayPoint);
 
       WayPoints.push_back(home_pose);  // down
@@ -336,6 +337,13 @@ class Push_objects {
         }
         success = PlanCartesian_ToHome();
         result_.result = success;
+        if(success){
+          //go to home
+          move_group->execute(my_plan);
+          as_.setSucceeded(result_);
+        }
+      }else{
+        PlanCartesian_ToHome();
         if(success){
           //go to home
           move_group->execute(my_plan);
