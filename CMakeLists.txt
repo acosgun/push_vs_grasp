@@ -9,6 +9,7 @@ add_compile_options(-std=c++11)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   gazebo_msgs
+  roscpp
   rospy
   geometry_msgs
   tf
@@ -23,11 +24,11 @@ find_package(catkin REQUIRED COMPONENTS
   genmsg
   actionlib_msgs
   actionlib
-  robotiq_2f_gripper_control
+
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -87,6 +88,7 @@ add_action_files(
    DEPENDENCIES
    actionlib_msgs  # Or other packages containing msgs
    geometry_msgs
+   std_msgs
 )
 
 ################################################
@@ -121,7 +123,7 @@ add_action_files(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES push_vs_grasp
-   CATKIN_DEPENDS gazebo_msgs rospy geometry_msgs tf moveit_core moveit_ros_move_group
+   CATKIN_DEPENDS gazebo_msgs rospy geometry_msgs tf moveit_core moveit_ros_move_group actionlib_msgs
 #  DEPENDS system_lib
 )
 
@@ -131,10 +133,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(
-# include
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -144,6 +143,9 @@ include_directories(
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
+
+
+
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
@@ -169,6 +171,16 @@ target_link_libraries(moveit_push_server
 target_link_libraries(moveit_push_client
    ${catkin_LIBRARIES}
  )
+
+add_dependencies(
+  moveit_push_server
+  ${push_vs_grasp_EXPORTED_TARGETS}
+)
+
+add_dependencies(
+  moveit_push_client
+  ${push_vs_grasp_EXPORTED_TARGETS}
+)
 
 #############
 ## Install ##
