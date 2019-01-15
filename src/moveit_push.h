@@ -52,8 +52,8 @@ class Push_objects {
       home_pose.position.x = -0.4;
       home_pose.position.y = 0.1;
       home_pose.position.z = 0.4;
-      home_pose.orientation.w = 1;
-      home_pose.orientation.x = 0;
+      home_pose.orientation.w = 0;
+      home_pose.orientation.x = 1;
       home_pose.orientation.y = 0;
       home_pose.orientation.z = 0;
     }
@@ -174,7 +174,7 @@ class Push_objects {
         WayPoints.push_back(WayPoint);  // down
 
       //plan to next to object
-        WayPoint.position.z = target_pose.position.z;
+        WayPoint.position.z = 0.1;
         WayPoints.push_back(WayPoint);  // right
 
       //create cartesian path trajectory msg
@@ -236,7 +236,7 @@ class Push_objects {
 
       WayPoint.position.x = goal_pose.position.x;
       WayPoint.position.y = goal_pose.position.y;
-      WayPoint.position.z = goal_pose.position.z;
+      WayPoint.position.z = 0.1;
 
       WayPoints.push_back(goal_pose);  // down
 
@@ -298,11 +298,14 @@ class Push_objects {
       push_vs_grasp::MoveItPushResult result_;
 
       move_group->setStartStateToCurrentState();
+      move_group->setGoalJointTolerance(0.1);
       target_pose = move_group->getCurrentPose().pose;
       move_group->setPlanningTime(5);
       move_group->setMaxVelocityScalingFactor(0.1);
 
       //add_collision_Items(Centroids);
+
+      std::cout << "w: " <<target_pose.orientation.w << " x: " <<target_pose.orientation.x << " y: " <<target_pose.orientation.y<< " z: " <<target_pose.orientation.z<< std::endl;
 
       //create goal pose
       goal_pose = target_pose;
@@ -329,28 +332,24 @@ class Push_objects {
         //move to point
         move_group->execute(my_plan);
         //push to goal
+        sleep(1);
         success = PlanCartesian_Push();
         result_.result = success;
         if(success){
           //Push to point
           move_group->execute(my_plan);
+          sleep(1);
         }
         success = PlanCartesian_ToHome();
         result_.result = success;
         if(success){
           //go to home
+          std::cout <<"go home" << std::endl;
           move_group->execute(my_plan);
           as_.setSucceeded(result_);
         }
-      }else{
-        PlanCartesian_ToHome();
-        if(success){
-          //go to home
-          move_group->execute(my_plan);
-          as_.setSucceeded(result_);
-        }
+        sleep(1);
       }
-    sleep(1);
     }
     
   public:
