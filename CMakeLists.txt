@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
+
+#include_directories(Box2D)
+#include(${CMAKE_CURRENT_SOURCE_DIR}/Box2D/CMakeLists.txt)
+add_subdirectory(Box2D)
+
 project(push_vs_grasp)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -133,7 +138,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+include_directories(include Box2D ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -153,6 +158,12 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(moveit_push_client src/Moveit_push_client.cpp)
 add_executable(moveit_push_server src/moveit_push_server.cpp)
+
+# Box2D
+add_executable(box2d_planner src/box2d_planner.cpp)
+target_link_libraries (box2d_planner Box2D)
+
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
