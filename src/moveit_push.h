@@ -302,7 +302,7 @@ class Push_objects {
       move_group->setPlanningTime(5);
       move_group->setMaxVelocityScalingFactor(0.1);
 
-      add_collision_Items(Centroids);
+      //add_collision_Items(Centroids);
 
       //create goal pose
       goal_pose = target_pose;
@@ -323,7 +323,7 @@ class Push_objects {
 */
 
       success = PlanCartesian_ToPoint();
-      Remove_collision_Items();
+      //Remove_collision_Items();
       result_.result = success;
       if(success){
         //move to point
