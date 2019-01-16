@@ -62,6 +62,7 @@
   <build_depend>moveit_ros_visualization</build_depend>
   <build_depend>actionlib</build_depend>
   <build_depend>actionlib_msgs</build_depend>
+  <build_depend>robotiq_2f_gripper_control</build_depend>
   <build_export_depend>gazebo</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>moveit_core</build_export_depend>
@@ -83,6 +84,7 @@
   <exec_depend>tf</exec_depend>
   <exec_depend>actionlib</exec_depend>
   <exec_depend>actionlib_msgs</exec_depend>
+  <exec_depend>robotiq_2f_gripper_control</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

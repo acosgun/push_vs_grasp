@@ -15,51 +15,24 @@ from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 from tf.msg import tfMessage
 from tf.transformations import quaternion_from_euler
-from gazebo_msgs.msg import ModelState
-from gazebo_msgs.srv import *
 from robotiq_2f_gripper_control.msg import Robotiq2FGripper_robot_output
 import time
 #CUSTOM
-from push_vs_grasp.msg import SimPickPlaceAction
+from push_vs_grasp.msg import RealPickPlaceAction
 
 #GLOBAL VARIABLES
 gripperOffset = 0.09
 
-class SimPickPlaceServer:
+class RealPickPlaceServer:
   def __init__(self):
-    rospy.wait_for_service("gazebo/get_model_state")
-    rospy.wait_for_service("gazebo/set_model_state")
-    self.get_model_state = rospy.ServiceProxy("/gazebo/get_model_state", GetModelState)
-    self.set_model_state = rospy.ServiceProxy("/gazebo/set_model_state", SetModelState)
     self.init_moveit()
     self.Grip = Robotiq2FGripper_robot_output
     self.go_home()
-    self.server = actionlib.SimpleActionServer('sim_pick_place', SimPickPlaceAction, self.executeCB, False)
+    self.server = actionlib.SimpleActionServer('real_pick_place', RealPickPlaceAction, self.executeCB, False)
     self.server.start()    
     self.pub = rospy.Publisher('Robotiq2FGripperRobotInput', Robotiq2FGripper_robot_output, queue_size=10)
     self.init_gripper()
-    rospy.loginfo("Sim Pick Place Server ON")
-    
-  def vanish_gazebo_object(self, obj_name):
-    state = ModelState()
-    state.model_name = obj_name
-    pose = Pose()
-    pose.position.x = 10.0
-    pose.position.y = 10.0
-    pose.position.z = 10.0
-    state.pose = pose
-    self.set_model_state(state)
-
-  def place_object(self, obj_name, obj_state, x, y, z):
-    state = ModelState()
-    state.model_name = obj_name
-    state.reference_frame = "robot::base_link"
-    pose = Pose()
-    pose.position.x = x
-    pose.position.y = y
-    pose.position.z = obj_state.pose.position.z + 0.01
-    state.pose = pose
-    self.set_model_state(state)
+    rospy.loginfo("Real Pick Place Server ON")
 
   def move_arm_overhead(self, x, y, z):
     group = self.group
@@ -76,27 +49,6 @@ class SimPickPlaceServer:
     plan = group.go(wait=True)
     group.stop()     # Calling `stop()` ensures that there is no residual movement
     group.clear_pose_targets()
-    
-  def get_closest_object(self, closest_obj):
-    max_num_objs = 5
-    model_name = "unit_cylinder"
-    import sys
-    min_dist = sys.float_info.max
-    final_name = 'n/a'
-    final_response = 'n/a'  
-    for i in range(max_num_objs):          
-      cur_obj_name = model_name + str(i)
-      response = self.get_model_state(cur_obj_name,  "robot::base_link")
-      if response.success:
-        import numpy as np
-        closest_obj_pos = np.array([closest_obj.x, closest_obj.y, closest_obj.z])
-        response_obj_pos =np.array([response.pose.position.x, response.pose.position.y, response.pose.position.z])       
-        dist = np.linalg.norm(closest_obj_pos - response_obj_pos)
-        if dist < min_dist:
-          min_dist = dist
-          final_response = response
-          final_name = cur_obj_name
-    return final_name, final_response
 
   def init_gripper(self):
     self.Grip.rACT = 0
@@ -175,7 +127,7 @@ class SimPickPlaceServer:
     group.stop()
     
   def executeCB(self, goal):
-    rospy.loginfo("executeCB: SimPickPlaceAction")
+    rospy.loginfo("executeCB: RealPickPlaceAction")
 
     self.go_home()
     self.Gripper_open()
@@ -183,15 +135,9 @@ class SimPickPlaceServer:
     ## Send Arm over the Object with some z offset
     x = goal.obj_centroid.point.x
     y = goal.obj_centroid.point.y
-    z = goal.obj_centroid.point.z + 0.1
+    z = goal.obj_centroid.point.z + 0.2
     self.move_arm_overhead(x,y,z)
-    
-    #Associate the centroid with one of the cylindrical objects in Gazebo
-    [obj_name, obj_state] = self.get_closest_object(goal.obj_centroid.point)
 
-
-    #Vanish Object in Gazebo
-    self.vanish_gazebo_object(obj_name)
     self.Gripper_close()
 
     #Find placement position, move the arm there (random for now)
@@ -202,12 +148,9 @@ class SimPickPlaceServer:
     import random
     x = random.uniform(min_x,max_x)
     y = random.uniform(min_y,max_y)
-    z = obj_state.pose.position.z + 0.1
+    z = 0.3
     self.move_arm_overhead(x,y,z)
     
-    #Drop Object
-    self.place_object(obj_name, obj_state, x, y, z)
-
     self.Gripper_open()
 
     self.go_home()
@@ -215,7 +158,7 @@ class SimPickPlaceServer:
     self.server.set_succeeded()
     
 if __name__ == '__main__':
-  rospy.init_node('sim_pick_place_server')
+  rospy.init_node('real_pick_place_server')
 
-  server = SimPickPlaceServer()
+  server = RealPickPlaceServer()
   rospy.spin()

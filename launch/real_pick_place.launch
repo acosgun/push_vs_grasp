@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="push_vs_grasp" name="real_pick_place_node" type="real_pick_place_server.py" output="screen">
+  </node>
+</launch>

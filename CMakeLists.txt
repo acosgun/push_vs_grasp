@@ -24,7 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   genmsg
   actionlib_msgs
   actionlib
-
+  robotiq_2f_gripper_control
 )
 
 ## System dependencies are found with CMake's conventions
@@ -80,6 +80,7 @@ add_action_files(
   action
   FILES
   SimPickPlace.action
+  RealPickPlace.action
   MoveItPush.action
 )
 

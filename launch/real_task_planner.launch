@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+<node pkg="push_vs_grasp" name="real_task_planner_node" type="real_task_planner.py" output="screen"/>
+</launch>
