@@ -18,8 +18,7 @@
 
 TestEntry g_testEntries[] =
 {
-  {"Apply Force", ApplyForce::Create},
-  {NULL, NULL}
+  {"Apply Force", ApplyForce::Create}
 };
 
 class Box2DPlanner: public Test
@@ -27,6 +26,7 @@ class Box2DPlanner: public Test
  private:
   ros::NodeHandle nh_;
   actionlib::SimpleActionServer<push_vs_grasp::PlanAction> as_;
+  ApplyForce *test;
   
   void init_actionlib(){
     as_.start();
@@ -34,6 +34,13 @@ class Box2DPlanner: public Test
   }
   void executeCB (const actionlib::SimpleActionServer<push_vs_grasp::PlanAction>::GoalConstPtr& goal)
   {
+
+    double my_num = test->reply();
+    std::cout<<my_num<<std::endl;
+
+    //TODO: Draw Objects here!
+    
+    /*
     while (!glfwWindowShouldClose(mainWindow))
       {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -41,13 +48,25 @@ class Box2DPlanner: public Test
 	glfwSwapBuffers(mainWindow);	
 	glfwPollEvents();
       }
+    */
   }
 
  public:  
-    Box2DPlanner(ros::NodeHandle* nodehandle): nh_(*nodehandle), as_(nh_, "/box2d_planner", boost::bind(&Box2DPlanner::executeCB, this, _1),false) {
-    setup_box2d();
-    init_actionlib();
+    Box2DPlanner(ros::NodeHandle* nodehandle): nh_(*nodehandle), as_(nh_, "/box2d_planner", boost::bind(&Box2DPlanner::executeCB, this, _1),false)
+    {
+      setup_box2d();
+      init_actionlib();       
+      
+      Test* test_base;    
+      test_base = g_testEntries->createFcn();
+      test = static_cast<ApplyForce*>(test_base);
+
+      //delete test_base;      
+      //test->setup_scene();      
+      //double my_num = test->reply();
+      //std::cout<<my_num<<std::endl;        
     }
+  
     ~Box2DPlanner() {
     g_debugDraw.Destroy();
     RenderGLDestroy();
