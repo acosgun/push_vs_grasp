@@ -26,25 +26,27 @@ gripperOffset = 0.09
 class RealPickPlaceServer:
   def __init__(self):
     self.init_moveit()
-    self.Grip = Robotiq2FGripper_robot_output
+    self.Grip = Robotiq2FGripper_robot_output()
+    self.home_pose = geometry_msgs.msg.Pose()
     self.go_home()
     self.server = actionlib.SimpleActionServer('real_pick_place', RealPickPlaceAction, self.executeCB, False)
     self.server.start()    
-    self.pub = rospy.Publisher('Robotiq2FGripperRobotInput', Robotiq2FGripper_robot_output, queue_size=10)
+    self.pub = rospy.Publisher('/Robotiq2FGripperRobotOutput', Robotiq2FGripper_robot_output, queue_size=10)
     self.init_gripper()
     rospy.loginfo("Real Pick Place Server ON")
 
   def move_arm_overhead(self, x, y, z):
     group = self.group
-    pose_goal = geometry_msgs.msg.Pose()
+    pose_goal = self.home_pose
     pose_goal.position.x = x
     pose_goal.position.y = y
     pose_goal.position.z = z + gripperOffset
-    quat = quaternion_from_euler(0, 1.57, 0)
-    pose_goal.orientation.x = quat[0]
-    pose_goal.orientation.y = quat[1]
-    pose_goal.orientation.z = quat[2]
-    pose_goal.orientation.w = quat[3]
+    #quat = quaternion_from_euler(0, 1.57, 0)
+    #pose_goal.orientation.x = quat[0]
+    #pose_goal.orientation.y = quat[1]
+    #pose_goal.orientation.z = quat[2]
+    #pose_goal.orientation.w = quat[3]
+
     group.set_pose_target(pose_goal)
     plan = group.go(wait=True)
     group.stop()     # Calling `stop()` ensures that there is no residual movement
@@ -56,7 +58,7 @@ class RealPickPlaceServer:
     self.Grip.rGTO = 0
     self.Grip.rSP  = 0
     self.Grip.rFR = 0
-    self.Grip.rATR =0
+    self.Grip.rATR = 0
     self.pub.publish(self.Grip)
     time.sleep(2)
 
@@ -65,7 +67,7 @@ class RealPickPlaceServer:
     self.Grip.rGTO = 1
     self.Grip.rSP  = 255
     self.Grip.rFR = 150
-    self.Grip.rATR =0
+    self.Grip.rATR = 0
     self.pub.publish(self.Grip)
     time.sleep(2)
 
@@ -91,8 +93,10 @@ class RealPickPlaceServer:
     p.pose.position.x = 0.42
     p.pose.position.y = -0.2
     p.pose.position.z = 0.3
+    p.orientation.w = 1.0
     scene.add_box("table", p, (0.5, 1.5, 0.6))
-    
+    time.sleep(2)
+
     group_name = "manipulator"
     self.group_name = group_name
     group = moveit_commander.MoveGroupCommander(self.group_name)
@@ -116,15 +120,22 @@ class RealPickPlaceServer:
     
   def go_home(self):
     group = self.group
-    joint_goal = group.get_current_joint_values()
-    joint_goal[0] = 0
-    joint_goal[1] = -0.4*pi
-    joint_goal[2] = -0.7*pi
-    joint_goal[3] = -0.4*pi
-    joint_goal[4] = 0.5*pi
-    joint_goal[5] = 0
-    group.go(joint_goal, wait=True)
-    group.stop()
+    self.home_pose = group.get_current_pose().pose
+    print("W:",self.home_pose.orientation.w)
+    print("X:",self.home_pose.orientation.x)
+    print("Y:",self.home_pose.orientation.y)
+    print("Z:",self.home_pose.orientation.z)
+
+    self.home_pose.position.x = -0.4
+    self.home_pose.position.y = 0.1
+    self.home_pose.position.z = 0.4
+    self.home_pose.orientation.w = 0
+    self.home_pose.orientation.x = -0.707106781
+    self.home_pose.orientation.y = 0
+    self.home_pose.orientation.z = 0.707106781
+
+    group.set_pose_target(self.home_pose)
+    plan = group.go(wait=True)
     
   def executeCB(self, goal):
     rospy.loginfo("executeCB: RealPickPlaceAction")
