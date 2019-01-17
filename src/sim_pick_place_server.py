@@ -17,6 +17,7 @@ from tf.msg import tfMessage
 from tf.transformations import quaternion_from_euler
 from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import *
+import time
 
 #CUSTOM
 from push_vs_grasp.msg import SimPickPlaceAction
@@ -93,22 +94,23 @@ class SimPickPlaceServer:
           final_response = response
           final_name = cur_obj_name
     return final_name, final_response
-        
     
   def init_moveit(self):
     robot = moveit_commander.RobotCommander()
 
     scene = moveit_commander.PlanningSceneInterface("base_link")
+    time.sleep(2)
 
     # Create table obstacle
     p = PoseStamped()
     p.header.frame_id = robot.get_planning_frame()
     print p.header.frame_id
-    p.pose.position.x = 0.42
-    p.pose.position.y = -0.2
-    p.pose.position.z = 0.3
-    scene.add_box("table", p, (0.5, 1.5, 0.6))
-    
+    p.pose.position.x = -0.5
+    p.pose.position.y = 0
+    p.pose.position.z = -0.03
+    scene.add_box("table", p, (2, 2, 0.06))
+    time.sleep(2)
+
     group_name = "manipulator"
     self.group_name = group_name
     group = moveit_commander.MoveGroupCommander(self.group_name)
@@ -146,7 +148,7 @@ class SimPickPlaceServer:
     rospy.loginfo("executeCB: SimPickPlaceAction")
 
     self.go_home()
-    
+
     ## Send Arm over the Object with some z offset
     x = goal.obj_centroid.point.x
     y = goal.obj_centroid.point.y
@@ -155,6 +157,7 @@ class SimPickPlaceServer:
     
     #Associate the centroid with one of the cylindrical objects in Gazebo
     [obj_name, obj_state] = self.get_closest_object(goal.obj_centroid.point)
+
 
     #Vanish Object in Gazebo
     self.vanish_gazebo_object(obj_name)
@@ -172,12 +175,13 @@ class SimPickPlaceServer:
     
     #Drop Object
     self.place_object(obj_name, obj_state, x, y, z)
-    
+
     self.go_home()
     
     self.server.set_succeeded()
     
 if __name__ == '__main__':
   rospy.init_node('sim_pick_place_server')
+
   server = SimPickPlaceServer()
   rospy.spin()

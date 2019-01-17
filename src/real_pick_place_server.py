@@ -85,16 +85,15 @@ class RealPickPlaceServer:
     robot = moveit_commander.RobotCommander()
 
     scene = moveit_commander.PlanningSceneInterface("base_link")
-
+    time.sleep(2)
     # Create table obstacle
     p = PoseStamped()
     p.header.frame_id = robot.get_planning_frame()
     print p.header.frame_id
-    p.pose.position.x = 0.42
-    p.pose.position.y = -0.2
-    p.pose.position.z = 0.3
-    p.orientation.w = 1.0
-    scene.add_box("table", p, (0.5, 1.5, 0.6))
+    p.pose.position.x = -0.5
+    p.pose.position.y = 0
+    p.pose.position.z = -0.03
+    scene.add_box("table", p, (2, 2, 0.06))
     time.sleep(2)
 
     group_name = "manipulator"
