@@ -37,142 +37,160 @@
 //
 struct UIState
 {
-	bool showMenu;
-	int scroll;
-	int scrollarea1;
-	bool mouseOverMenu;
-	bool chooseTest;
+  bool showMenu;
+  int scroll;
+  int scrollarea1;
+  bool mouseOverMenu;
+  bool chooseTest;
 };
 
 //
 namespace
 {
-	GLFWwindow* mainWindow = NULL;
-	UIState ui;
+  GLFWwindow* mainWindow = NULL;
+  UIState ui;
 
-	int32 testIndex = 0;
-	int32 testSelection = 0;
-	int32 testCount = 0;
-	TestEntry* entry;
-	Test* test;
-	Settings settings;
-	bool rightMouseDown;
-	b2Vec2 lastp;
+  int32 testIndex = 0;
+  int32 testSelection = 0;
+  int32 testCount = 0;
+  TestEntry* entry;
+  Test* test;
+  Settings settings;
+  bool rightMouseDown;
+  b2Vec2 lastp;
 }
 
 //
 static void sCreateUI()
 {
-	ui.showMenu = false;
-	ui.scroll = 0;
-	ui.scrollarea1 = 0;
-	ui.chooseTest = false;
-	ui.mouseOverMenu = false;
+  ui.showMenu = false;
+  ui.scroll = 0;
+  ui.scrollarea1 = 0;
+  ui.chooseTest = false;
+  ui.mouseOverMenu = false;
 }
 
 //
 static void sRestart()
 {
-	delete test;
-	entry = g_testEntries + testIndex;
-	test = entry->createFcn();
+  delete test;
+  entry = g_testEntries + testIndex;
+  test = entry->createFcn();
 }
 
 //
 static void sSimulate()
 {
-	glEnable(GL_DEPTH_TEST);
-	test->Step(&settings);
+  glEnable(GL_DEPTH_TEST);
+  test->Step(&settings);
 
-	//test->DrawTitle(entry->name);
-	glDisable(GL_DEPTH_TEST);
+  //test->DrawTitle(entry->name);
+  glDisable(GL_DEPTH_TEST);
 
-	if (testSelection != testIndex)
-	{
-		testIndex = testSelection;
-		delete test;
-		entry = g_testEntries + testIndex;
-		test = entry->createFcn();
-		g_camera.m_zoom = 1.0f;
-		g_camera.m_center.Set(0.0f, 20.0f);
-	}
+  if (testSelection != testIndex)
+    {
+      testIndex = testSelection;
+      delete test;
+      entry = g_testEntries + testIndex;
+      test = entry->createFcn();
+      g_camera.m_zoom = 1.0f;
+      g_camera.m_center.Set(0.0f, 20.0f);
+    }
 }
 
 //int main(int argc, char** argv)
-void setup_box2d()
+static void setup_box2d()
 {
   g_camera.m_width = 1024;
-    g_camera.m_height = 640;
+  g_camera.m_height = 640;
     
-    if (glfwInit() == 0)
-      {
-	fprintf(stderr, "Failed to initialize GLFW\n");
-	//return -1;
-      }
+  if (glfwInit() == 0) {
+    fprintf(stderr, "Failed to initialize GLFW\n");
+  }
     
-    mainWindow = glfwCreateWindow(g_camera.m_width, g_camera.m_height, "Planner", NULL, NULL);
-    if (mainWindow == NULL)
-      {
-	fprintf(stderr, "Failed to open GLFW mainWindow.\n");
-	glfwTerminate();
-	//return -1;
-      }
-    
-    glfwMakeContextCurrent(mainWindow);
-    printf("OpenGL %s, GLSL %s\n", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
-
+  mainWindow = glfwCreateWindow(g_camera.m_width, g_camera.m_height, "Planner", NULL, NULL);
+  if (mainWindow == NULL)
+    {
+      fprintf(stderr, "Failed to open GLFW mainWindow.\n");
+      glfwTerminate();
+      //return -1;
+    }
+  glfwMakeContextCurrent(mainWindow);
+  printf("OpenGL %s, GLSL %s\n", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 #if defined(__APPLE__) == FALSE
-    //glewExperimental = GL_TRUE;
-    GLenum err = glewInit();
-    if (GLEW_OK != err)
-      {
-	fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-	exit(EXIT_FAILURE);
-      }
+  //glewExperimental = GL_TRUE;
+  GLenum err = glewInit();
+  if (GLEW_OK != err)
+    {
+      fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+      exit(EXIT_FAILURE);
+    }
 #endif
-    
-    g_debugDraw.Create();
 
-    sCreateUI();
-
-    testCount = 0;
-    while (g_testEntries[testCount].createFcn != NULL)
-      {
-	++testCount;
-      }
-
-    testIndex = b2Clamp(testIndex, 0, testCount - 1);
-    testSelection = testIndex;
-
-    entry = g_testEntries + testIndex;
-    test = entry->createFcn();
-
-    // Control the frame rate. One draw per monitor refresh.
-    glfwSwapInterval(1);
-
-    double time1 = glfwGetTime();
-    double frameTime = 0.0;
+  
+  g_debugDraw.Create();
    
-    glClearColor(0.3f, 0.3f, 0.3f, 1.f);       
-    /*
-    while (!glfwWindowShouldClose(mainWindow))
-      {
-	//glfwGetWindowSize(mainWindow, &g_camera.m_width, &g_camera.m_height);
-	//glViewport(0, 0, g_camera.m_width, g_camera.m_height);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	sSimulate();
+  sCreateUI();  
+  testCount = 0;
+  while (g_testEntries[testCount].createFcn != NULL)
+    {
+      ++testCount;
+    }
 
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glDisable(GL_DEPTH_TEST);
-	//RenderGLFlush(g_camera.m_width, g_camera.m_height);
+  testIndex = b2Clamp(testIndex, 0, testCount - 1);
+  testSelection = testIndex;
+
+  entry = g_testEntries + testIndex;
+  test = entry->createFcn();
+
+  
+  // Control the frame rate. One draw per monitor refresh.
+  glfwSwapInterval(1);
+
+  //double time1 = glfwGetTime();
+  //double frameTime = 0.0;
+   
+  glClearColor(0.3f, 0.3f, 0.3f, 1.f);       
+  /*
+    while (!glfwWindowShouldClose(mainWindow))
+    {
+    //glfwGetWindowSize(mainWindow, &g_camera.m_width, &g_camera.m_height);
+    //glViewport(0, 0, g_camera.m_width, g_camera.m_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    sSimulate();
+
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glDisable(GL_DEPTH_TEST);
+    //RenderGLFlush(g_camera.m_width, g_camera.m_height);
 	
-	glfwSwapBuffers(mainWindow);	
-	glfwPollEvents();
-      }
-    */
-    //g_debugDraw.Destroy();
-    //RenderGLDestroy();
-    //glfwTerminate();
+    glfwSwapBuffers(mainWindow);	
+    glfwPollEvents();
+    }
+  */
+  //g_debugDraw.Destroy();
+  //RenderGLDestroy();
+  //glfwTerminate();
+}
+
+static void draw_stuff()
+{
+  glfwGetWindowSize(mainWindow, &g_camera.m_width, &g_camera.m_height);
+  glViewport(0, 0, g_camera.m_width, g_camera.m_height);  
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  sSimulate();
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_DEPTH_TEST);
+  //RenderGLFlush(g_camera.m_width, g_camera.m_height);
+  glfwSwapBuffers(mainWindow);  
+  glfwPollEvents();
+
+  /*
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  sSimulate();
+  glfwSwapBuffers(mainWindow);	
+  glfwPollEvents();
+  */
 }

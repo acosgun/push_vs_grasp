@@ -19,12 +19,92 @@
 #ifndef APPLY_FORCE_H
 #define APPLY_FORCE_H
 
+//System
+#include <stdlib.h>
+#include <iostream>
+
+
+//ROS
+#include <ros/ros.h>
+#include <geometry_msgs/PointStamped.h>
+
+
+
 class ApplyForce : public Test
 {
 public:
-	ApplyForce()
+  double pix_coeff = 30.0;
+	void conv_robot_to_box2d_frame(const double x_in, const double y_in, double& x_out, double& y_out) {
+	  x_out = -y_in * pix_coeff;
+	  y_out = -x_in * pix_coeff;
+	  return;
+	}
+
+	
+	void destroy_all_bodies()
 	{
-	  //std::cout<<"Constructor"<<std::endl;
+	  for (b2Body* b = m_world->GetBodyList(); b;)  // remove GetNext() call
+	    {
+	      //if (b->GetUserData() != NULL) {
+	      //CCSprite *s = (CCSprite *)b->GetUserData();
+		//[self removeChild:s cleanup:YES];
+		b2Body* next = b->GetNext();  // remember next body before *b gets destroyed
+		m_world->DestroyBody(b); // do I need to destroy fixture as well(and how?) or it does that for me?
+		b = next;  // go to next body
+		//}
+	    }
+	}
+	
+	void setup_table(std::vector<geometry_msgs::PointStamped> centroids)
+	{
+	  /*
+	  //create Table
+	    b2Vec2 vertices[4];
+	    vertices[0].Set(-1,  2);
+	    vertices[1].Set(-1,  0);
+	    vertices[2].Set( 0, -3);
+	    vertices[3].Set( 1,  0);
+	    
+	    b2PolygonShape polygonShape;
+	    polygonShape.Set(vertices, 4); //pass array to the shape
+	  
+	  
+	  b2PolygonShape polygonShape;
+	  polygonShape.SetAsBox(1*pix_coeff, 0.5*pix_coeff); //a 2x1 rectangle
+	  myBodyDef.position.Set(10,20); //a bit to the right
+	  */
+	  int num_objs = 0;
+	  for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())
+	    {
+	      //b->SetAwake(true);
+	      num_objs++;
+	    }
+	  std::cout<< "num_objs: " << num_objs << std::endl;
+
+	  destroy_all_bodies();
+	  
+	  m_world->SetGravity(b2Vec2(0.0f, 0.0f));
+
+	  for (int i=0; i<centroids.size(); i++) {
+	    b2BodyDef myBodyDef;
+	    myBodyDef.type = b2_dynamicBody; //this will be a dynamic body
+	    //myBodyDef.position.Set(-10, 20); //a little to the left
+
+	    double x_out, y_out;
+	    conv_robot_to_box2d_frame(centroids[i].point.x, centroids[i].point.y, x_out, y_out);
+	    myBodyDef.position.Set(x_out,y_out);
+	    
+	    b2Body* dynamicBody1 = m_world->CreateBody(&myBodyDef);
+	  
+	    b2CircleShape circleShape;
+	    circleShape.m_p.Set(0, 0); //position, relative to body position
+	    circleShape.m_radius = 1; //radius	  
+
+	    b2FixtureDef myFixtureDef;
+	    myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
+	    dynamicBody1->CreateFixture(&myFixtureDef); //add a fixture to the body	  
+	  }
+	  
 	}
 	void setup_scene()
 	{
@@ -33,7 +113,7 @@ public:
 	  const float32 k_restitution = 0.4f;
 
 	  b2Body* ground;
-	  {
+	  
 	    b2BodyDef bd;
 	    bd.position.Set(0.0f, 20.0f);
 	    ground = m_world->CreateBody(&bd);
@@ -60,8 +140,8 @@ public:
 	    // Bottom horizontal
 	    shape.Set(b2Vec2(-20.0f, -20.0f), b2Vec2(20.0f, -20.0f));
 	    ground->CreateFixture(&sd);
-	  }
-
+	  
+	  /*
 	  {
 	    b2Transform xf1;
 	    xf1.q.Set(0.3524f * b2_pi);
@@ -106,7 +186,7 @@ public:
 	    m_body->CreateFixture(&sd1);
 	    m_body->CreateFixture(&sd2);
 	  }
-
+	  
 	  {
 	    b2PolygonShape shape;
 	    shape.SetAsBox(0.5f, 0.5f);
@@ -144,21 +224,17 @@ public:
 
 		m_world->CreateJoint(&jd);
 	      }
-	  }
+	  
+	      }*/
 	}
 	~ApplyForce()
 	  {
-	    //std::cout<<"Destructor"<<std::endl;
+	    std::cout<<"ApplyForce Destructor"<<std::endl;
 	  }
 	static Test* Create()
 	{
 	  return new ApplyForce;
 	}
-	double reply()
-	{
-	  return 999.0;
-	}
-
 	
 	b2Body* m_body;
 };

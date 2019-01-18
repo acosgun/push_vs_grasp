@@ -59,12 +59,22 @@ while(true){
 
   if (finished_before_timeout)
   {
-      ROS_INFO("Action finished");
+      ROS_INFO("ScanObjects Action successful!");
       kinect_segmentation::ScanObjectsResult Scan_Result = *ScanObjects_Action_client.getResult();
+
+      //Box2d
+      push_vs_grasp::PlanGoal planner_goal;
+      planner_goal.all_centroids = Scan_Result.centroids;
+      Plan_Action_client.sendGoal(planner_goal);
+      bool plan_result = Plan_Action_client.waitForResult();
+      //
+
+
+      
       Push_goal.all_centroids = Scan_Result.centroids;
       std::vector<geometry_msgs::PointStamped> Centroids = Scan_Result.centroids; 
       geometry_msgs::PointStamped goalXYZ ;
-        //Randomly choose a point from the array
+      //Randomly choose a point from the array
       int Centroid_indx = rand() % (static_cast<int>(Centroids.size()) + 1);
       goalXYZ.point.x = Centroids[Centroid_indx].point.x;
       goalXYZ.point.y = Centroids[Centroid_indx].point.y;
