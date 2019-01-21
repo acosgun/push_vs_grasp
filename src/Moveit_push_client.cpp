@@ -8,11 +8,13 @@
 #include <actionlib/client/terminal_state.h>
 
 #include <push_vs_grasp/MoveItPushAction.h>
-#include <kinect_segmentation/ScanObjectsAction.h>
-
-#include <kinect_segmentation/ScanObjectsGoal.h>
 #include <push_vs_grasp/MoveItPushGoal.h>
 
+#include <kinect_segmentation/ScanObjectsAction.h>
+#include <kinect_segmentation/ScanObjectsGoal.h>
+
+#include <push_vs_grasp/PlanAction.h>
+#include <push_vs_grasp/PlanGoal.h>
 
 void spinThread()
 {
@@ -28,6 +30,8 @@ int main (int argc, char **argv)
   // true causes the client to spin its own thread
   actionlib::SimpleActionClient<push_vs_grasp::MoveItPushAction>   Pushing_Action_client("Pushing");
   actionlib::SimpleActionClient<kinect_segmentation::ScanObjectsAction> ScanObjects_Action_client("scan_objects");
+  actionlib::SimpleActionClient<push_vs_grasp::PlanAction> Plan_Action_client("box2d_planner");
+  
   boost::thread spin_thread(&spinThread);
   
   ROS_INFO("Waiting for action Client to startup.");
@@ -37,9 +41,12 @@ int main (int argc, char **argv)
   ROS_INFO("ScanObjects_Action_client started");
 
   Pushing_Action_client.waitForServer(); //will wait for infinite time
-
   ROS_INFO("Pushing_Action_client started");
 
+  Plan_Action_client.waitForServer(); //will wait for infinite time
+  ROS_INFO("Plan_Action_client started");
+
+  
   ///*
   // send a goal to the action
   kinect_segmentation::ScanObjectsGoal ScanObjects_goal;
@@ -52,12 +59,22 @@ while(true){
 
   if (finished_before_timeout)
   {
-      ROS_INFO("Action finished");
+      ROS_INFO("ScanObjects Action successful!");
       kinect_segmentation::ScanObjectsResult Scan_Result = *ScanObjects_Action_client.getResult();
+
+      //Box2d
+      push_vs_grasp::PlanGoal planner_goal;
+      planner_goal.all_centroids = Scan_Result.centroids;
+      Plan_Action_client.sendGoal(planner_goal);
+      bool plan_result = Plan_Action_client.waitForResult();
+      //
+
+
+      
       Push_goal.all_centroids = Scan_Result.centroids;
       std::vector<geometry_msgs::PointStamped> Centroids = Scan_Result.centroids; 
       geometry_msgs::PointStamped goalXYZ ;
-        //Randomly choose a point from the array
+      //Randomly choose a point from the array
       int Centroid_indx = rand() % (static_cast<int>(Centroids.size()) + 1);
       goalXYZ.point.x = Centroids[Centroid_indx].point.x;
       goalXYZ.point.y = Centroids[Centroid_indx].point.y;

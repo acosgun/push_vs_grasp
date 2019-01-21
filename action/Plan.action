@@ -1,0 +1,8 @@
+# Define the goal
+geometry_msgs/PointStamped[] all_centroids
+---
+# Define the result
+bool result
+geometry_msgs/PointStamped obj_centroid
+---
+# Define a feedback message
