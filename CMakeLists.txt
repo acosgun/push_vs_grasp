@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
+
+add_subdirectory(Box2D)
 project(push_vs_grasp)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -25,10 +27,13 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   actionlib
   robotiq_2f_gripper_control
+  box2d
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
+find_package(OpenGL REQUIRED)
+find_package(GLEW REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -82,6 +87,7 @@ add_action_files(
   SimPickPlace.action
   RealPickPlace.action
   MoveItPush.action
+  Plan.action
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -134,7 +140,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+include_directories(include Box2D ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} 	${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} ${Box2D_SOURCE_DIR} ${Testbed_Framework_SRCS} ${Testbed_Tests_SRCS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -146,14 +152,33 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 ## either from message generation or dynamic reconfigure
 
 
-
+add_definitions( -DGLEW_STATIC -D_CRT_SECURE_NO_WARNINGS)
+set(Testbed_Framework_SRCS2
+  	Box2D/Testbed/Framework/DebugDraw.h
+	Box2D/Testbed/Framework/DebugDraw.cpp
+	Box2D/Testbed/Framework/imgui.h
+	Box2D/Testbed/Framework/imgui.cpp
+	Box2D/Testbed/Framework/RenderGL3.h
+	Box2D/Testbed/Framework/RenderGL3.cpp	
+	Box2D/Testbed/Framework/Test.h
+	Box2D/Testbed/Framework/Test.cpp
+	Box2D/Testbed/Framework/Main.h
+)
+set(Testbed_Tests_SRCS2
+	src/box2d_planner.h
+)
+source_group(Framework FILES ${Testbed_Framework_SRCS2})
+source_group(Tests FILES ${Testbed_Tests_SRCS2})
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
+
 add_executable(moveit_push_client src/Moveit_push_client.cpp)
 add_executable(moveit_push_server src/moveit_push_server.cpp)
+add_executable(box2d_planner_server src/box2d_planner_server.cpp ${Testbed_Framework_SRCS2} ${Testbed_Tests_SRCS2})
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -166,6 +191,14 @@ add_executable(moveit_push_server src/moveit_push_server.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
+target_link_libraries(box2d_planner_server
+   ${catkin_LIBRARIES}
+   Box2D
+   ${GLEW_LIBRARIES}
+   glfw
+   ${ADDITIONAL_LIBRARIES}
+   ${OPENGL_LIBRARIES}  
+)
 target_link_libraries(moveit_push_server
    ${catkin_LIBRARIES}
  )
@@ -182,6 +215,12 @@ add_dependencies(
   moveit_push_client
   ${push_vs_grasp_EXPORTED_TARGETS}
 )
+
+add_dependencies(
+  box2d_planner_server
+  ${push_vs_grasp_EXPORTED_TARGETS}
+)
+
 
 #############
 ## Install ##
