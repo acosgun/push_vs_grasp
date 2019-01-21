@@ -23,6 +23,8 @@
 
 //Custom
 #include <push_vs_grasp/MoveItPushAction.h>
+#define MIN_Z_DEPTH 0.08
+#define PUSH_OFFSET 0.15
 
 class Push_objects {
   private:
@@ -53,8 +55,8 @@ class Push_objects {
       home_pose.position.y = 0.1;
       home_pose.position.z = 0.4;
       home_pose.orientation.w = 0;
-      home_pose.orientation.x = 1;
-      home_pose.orientation.y = 0;
+      home_pose.orientation.x = 0;
+      home_pose.orientation.y = 1;
       home_pose.orientation.z = 0;
     }
 
@@ -160,8 +162,8 @@ class Push_objects {
       std::vector<geometry_msgs::Pose> WayPoints;
       float Y_offset = 0;
       if (goal_pose.position.y > target_pose.position.y){
-        Y_offset = -0.1;
-      }else Y_offset = 0.1;
+        Y_offset = -PUSH_OFFSET;
+      }else Y_offset = PUSH_OFFSET;
 
       //plan to above object
         WayPoint.position.y = target_pose.position.y + Y_offset;
@@ -174,7 +176,7 @@ class Push_objects {
         WayPoints.push_back(WayPoint);  // down
 
       //plan to next to object
-        WayPoint.position.z = 0.1;
+        WayPoint.position.z = MIN_Z_DEPTH;
         WayPoints.push_back(WayPoint);  // right
 
       //create cartesian path trajectory msg
@@ -236,7 +238,7 @@ class Push_objects {
 
       WayPoint.position.x = goal_pose.position.x;
       WayPoint.position.y = goal_pose.position.y;
-      WayPoint.position.z = 0.1;
+      WayPoint.position.z = MIN_Z_DEPTH;
 
       WayPoints.push_back(goal_pose);  // down
 
