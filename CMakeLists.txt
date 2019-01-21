@@ -27,7 +27,6 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   actionlib
   robotiq_2f_gripper_control
-  box2d
 )
 
 ## System dependencies are found with CMake's conventions
