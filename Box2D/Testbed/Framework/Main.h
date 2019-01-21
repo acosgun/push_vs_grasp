@@ -34,6 +34,8 @@
 #define snprintf _snprintf
 #endif
 
+double camera_y_offset = 15.0f;
+
 //
 struct UIState
 {
@@ -87,6 +89,8 @@ static void sSimulate()
   //test->DrawTitle(entry->name);
   glDisable(GL_DEPTH_TEST);
 
+  g_camera.m_center.Set(0.0f, camera_y_offset);
+  
   if (testSelection != testIndex)
     {
       testIndex = testSelection;
@@ -94,15 +98,16 @@ static void sSimulate()
       entry = g_testEntries + testIndex;
       test = entry->createFcn();
       g_camera.m_zoom = 1.0f;
-      g_camera.m_center.Set(0.0f, 20.0f);
+      //g_camera.m_center.Set(0.0f, 0.0f);
+      //g_camera.m_center.Set(0.0f, -12.5);
     }
 }
 
 //int main(int argc, char** argv)
 static void setup_box2d()
 {
-  g_camera.m_width = 1024;
-  g_camera.m_height = 640;
+  g_camera.m_width = 800;
+  g_camera.m_height = 400;
     
   if (glfwInit() == 0) {
     fprintf(stderr, "Failed to initialize GLFW\n");
@@ -151,7 +156,8 @@ static void setup_box2d()
   //double time1 = glfwGetTime();
   //double frameTime = 0.0;
    
-  glClearColor(0.3f, 0.3f, 0.3f, 1.f);       
+  glClearColor(0.9f, 0.9f, 0.9f, 1.f);
+  g_camera.m_center.Set(0.0f, camera_y_offset);
   /*
     while (!glfwWindowShouldClose(mainWindow))
     {
@@ -179,10 +185,12 @@ static void draw_stuff()
   glfwGetWindowSize(mainWindow, &g_camera.m_width, &g_camera.m_height);
   glViewport(0, 0, g_camera.m_width, g_camera.m_height);  
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
   sSimulate();
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_DEPTH_TEST);
+  
   //RenderGLFlush(g_camera.m_width, g_camera.m_height);
   glfwSwapBuffers(mainWindow);  
   glfwPollEvents();

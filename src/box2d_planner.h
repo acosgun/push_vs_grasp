@@ -42,11 +42,13 @@ class Box2DPlanner: public Test
       }
  
     ApplyForce *test_derived = static_cast<ApplyForce*>(test);
-    test_derived->setup_table(goal->all_centroids);
+    test_derived->destroy_all_objects();
+    test_derived->setup_table();
+    test_derived->setup_objects(goal->all_centroids);
 
     while(true) {
       draw_stuff(); //defined in Main.h
-      sleep(2.0);
+      sleep(0.25);
       break;
     }
     
