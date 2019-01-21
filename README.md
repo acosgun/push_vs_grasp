@@ -6,4 +6,6 @@ To run:
 
 ```
 roslaunch push_vs_grasp run.launch
+roslaunch push_vs_grasp Push_action.launch
+roslaunch push_vs_grasp box2d_planner.launch
 ```
