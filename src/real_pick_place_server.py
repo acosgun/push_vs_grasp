@@ -3,6 +3,7 @@
 #ROS
 import roslib
 roslib.load_manifest('push_vs_grasp')
+import copy
 import rospy
 import actionlib
 from moveit_python import *
@@ -28,29 +29,18 @@ class RealPickPlaceServer:
     self.init_moveit()
     self.Grip = Robotiq2FGripper_robot_output()
     self.home_pose = geometry_msgs.msg.Pose()
-    self.go_home()
+    self.Goal_pose = geometry_msgs.msg.Pose()
+    self.Target_pose = geometry_msgs.msg.Pose()
+
     self.server = actionlib.SimpleActionServer('real_pick_place', RealPickPlaceAction, self.executeCB, False)
-    self.server.start()    
     self.pub = rospy.Publisher('/Robotiq2FGripperRobotOutput', Robotiq2FGripper_robot_output, queue_size=10)
+
+    self.init_home_pose()
     self.init_gripper()
+
+    self.go_home()
+    self.server.start()    
     rospy.loginfo("Real Pick Place Server ON")
-
-  def move_arm_overhead(self, x, y, z):
-    group = self.group
-    pose_goal = self.home_pose
-    pose_goal.position.x = x
-    pose_goal.position.y = y
-    pose_goal.position.z = z + gripperOffset
-    #quat = quaternion_from_euler(0, 1.57, 0)
-    #pose_goal.orientation.x = quat[0]
-    #pose_goal.orientation.y = quat[1]
-    #pose_goal.orientation.z = quat[2]
-    #pose_goal.orientation.w = quat[3]
-
-    group.set_pose_target(pose_goal)
-    plan = group.go(wait=True)
-    group.stop()     # Calling `stop()` ensures that there is no residual movement
-    group.clear_pose_targets()
 
   def init_gripper(self):
     self.Grip.rACT = 0
@@ -71,16 +61,18 @@ class RealPickPlaceServer:
     self.pub.publish(self.Grip)
     time.sleep(2)
 
-  def Gripper_close(self):
-    self.Grip.rPR = 255
-    self.pub.publish(self.Grip)
-    time.sleep(2)
+  def init_home_pose(self):
+    self.home_pose.position.x = -0.4
+    self.home_pose.position.y = 0.1
+    self.home_pose.position.z = 0.5
+    self.home_pose.orientation.w = 0
+    self.home_pose.orientation.x = -0.707106781
+    self.home_pose.orientation.y = 0
+    self.home_pose.orientation.z = 0.707106781
 
-  def Gripper_open(self):
-    self.Grip.rPR = 0
-    self.pub.publish(self.Grip)
-    time.sleep(2)
-    
+    self.Target_pose = copy.deepcopy(self.home_pose)
+    self.Goal_pose   = copy.deepcopy(self.home_pose)
+
   def init_moveit(self):
     robot = moveit_commander.RobotCommander()
 
@@ -116,54 +108,167 @@ class RealPickPlaceServer:
     #print robot.get_current_state()
     #print ""
     self.group = group
+
+  def Gripper_close(self):
+    self.Grip.rPR = 255
+    self.pub.publish(self.Grip)
+    time.sleep(2)
+
+  def Gripper_open(self):
+    self.Grip.rPR = 0
+    self.pub.publish(self.Grip)
+    time.sleep(2)
     
-  def go_home(self):
+  def Cartesian_To_Pick(self):
+    print("Pick")
+    self.Gripper_open()
     group = self.group
-    self.home_pose = group.get_current_pose().pose
-    print("W:",self.home_pose.orientation.w)
-    print("X:",self.home_pose.orientation.x)
-    print("Y:",self.home_pose.orientation.y)
-    print("Z:",self.home_pose.orientation.z)
+    waypoints = []
+    wpose = group.get_current_pose().pose
 
-    self.home_pose.position.x = -0.4
-    self.home_pose.position.y = 0.1
-    self.home_pose.position.z = 0.4
-    self.home_pose.orientation.w = 0
-    self.home_pose.orientation.x = -0.707106781
-    self.home_pose.orientation.y = 0
-    self.home_pose.orientation.z = 0.707106781
+    wpose.position.x = self.Target_pose.position.x
+    waypoints.append(copy.deepcopy(wpose))
 
+    wpose.position.y = self.Target_pose.position.y
+    waypoints.append(copy.deepcopy(wpose))
+
+    wpose.position.z = 0.2
+    waypoints.append(copy.deepcopy(wpose))
+
+    (plan, fraction) = group.compute_cartesian_path(
+                                       waypoints,   # waypoints to follow
+                                       0.05,        # eef_step
+                                       0.0) # jump_threshold
+
+    success = False
+    # Plan the trajectory
+    if (fraction == 1):
+      success = True
+      group.execute(plan)
+      time.sleep(1)
+
+    self.Gripper_close()
+
+    wpose.position.z = 0.4
     group.set_pose_target(self.home_pose)
+
     plan = group.go(wait=True)
+
+    return success
+
+  def Cartesian_To_Place(self):
+    print("Place")
+    group = self.group
+    waypoints = []
+    wpose = group.get_current_pose().pose
+
+    wpose.position.z = 0.4
+    waypoints.append(copy.deepcopy(wpose))
+
+    wpose.position.x = self.Goal_pose.position.x
+    waypoints.append(copy.deepcopy(wpose))
+
+    wpose.position.y = self.Goal_pose.position.y
+    waypoints.append(copy.deepcopy(wpose))
+
+    wpose.position.z = self.Goal_pose.position.z
+    waypoints.append(copy.deepcopy(wpose))
+
+    (plan, fraction) = group.compute_cartesian_path(
+                                       waypoints,   # waypoints to follow
+                                       0.05,        # eef_step
+                                       0.0) # jump_threshold
+
+    success = False
+    # Plan the trajectory
+    if (fraction == 1):
+      success = True
+      group.execute(plan)
+      time.sleep(1)
+
+    self.Gripper_open()
+
+    wpose.position.z = 0.4
+    group.set_pose_target(self.home_pose)
+
+    plan = group.go(wait=True)
+
+    return success
+
+
+  def go_home(self):
+    print("Home")
+    print("x", self.home_pose.position.x)
+    print("y", self.home_pose.position.y)
+
+    group = self.group
+   
+    waypoints = []
+    wpose = group.get_current_pose().pose
+
+    wpose.position.y = 0
+    waypoints.append(copy.deepcopy(wpose))
+
+    wpose.position.x = -0.4
+    waypoints.append(copy.deepcopy(wpose))
+
+    wpose.position.y = self.home_pose.position.y
+    waypoints.append(copy.deepcopy(wpose))
+
+    wpose.position.x = self.home_pose.position.x
+    waypoints.append(copy.deepcopy(wpose))
+
+    wpose = self.home_pose
+    waypoints.append(copy.deepcopy(wpose))
+
+    (plan, fraction) = group.compute_cartesian_path(
+                                       waypoints,   # waypoints to follow
+                                       0.05,        # eef_step
+                                       0.0) # jump_threshold
+
+    success = False
+    print(fraction)
+
+    # Plan the trajectory
+    if (fraction == 1):
+      success = True
+      print("Home")
+
+      group.execute(plan)
+      time.sleep(1)
+
+    return success
+
     
   def executeCB(self, goal):
     rospy.loginfo("executeCB: RealPickPlaceAction")
 
-    self.go_home()
-    self.Gripper_open()
+    #success = self.go_home()
 
     ## Send Arm over the Object with some z offset
-    x = goal.obj_centroid.point.x
-    y = goal.obj_centroid.point.y
-    z = goal.obj_centroid.point.z + 0.2
-    self.move_arm_overhead(x,y,z)
+    self.Target_pose.position.x = goal.obj_centroid.point.x
+    self.Target_pose.position.y = goal.obj_centroid.point.y
 
-    self.Gripper_close()
+    success = self.Cartesian_To_Pick()
 
-    #Find placement position, move the arm there (random for now)
-    min_x = -0.4
-    max_x = -0.2
-    min_y = -0.3
-    max_y = 0.3
-    import random
-    x = random.uniform(min_x,max_x)
-    y = random.uniform(min_y,max_y)
-    z = 0.3
-    self.move_arm_overhead(x,y,z)
-    
-    self.Gripper_open()
+    if(success):
+      #Find placement position, move the arm there (random for now)
+      min_x = -0.4
+      max_x = -0.2
+      min_y = -0.3
+      max_y = 0.3
+      import random
+      x = random.uniform(min_x,max_x)
+      y = random.uniform(min_y,max_y)
+      z = 0.2
 
-    self.go_home()
+      self.Goal_pose.position.x = x
+      self.Goal_pose.position.y = y
+      self.Goal_pose.position.z = z
+
+      success = self.Cartesian_To_Place()
+      
+      success = self.go_home()
     
     self.server.set_succeeded()
     
