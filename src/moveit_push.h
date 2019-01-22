@@ -156,7 +156,7 @@ class Push_objects {
 
 
     bool PlanCartesian_ToPoint(){
-      std::cout << "PlanCartesian_ToPoint NOW!" << std::endl;
+      //std::cout << "PlanCartesian_ToPoint NOW!" << std::endl;
       move_group->setStartStateToCurrentState();
       geometry_msgs::Pose WayPoint = move_group->getCurrentPose().pose;
       std::vector<geometry_msgs::Pose> WayPoints;
@@ -197,7 +197,7 @@ class Push_objects {
 
       bool success = iptp.computeTimeStamps(rt);;
   */
-      std::cout << fraction << std::endl;
+	//std::cout << fraction << std::endl;
       bool success = false;
         // Plan the trajectory
       if (fraction == 1){
@@ -208,7 +208,7 @@ class Push_objects {
     }
 
     bool PlanCartesian_Push(){
-      std::cout << "PlanCartesian_Push NOW!" << std::endl;
+      //std::cout << "PlanCartesian_Push NOW!" << std::endl;
       geometry_msgs::Pose StartPoint = move_group->getCurrentPose().pose;
 
       geometry_msgs::Pose WayPoint = StartPoint;
@@ -248,7 +248,7 @@ class Push_objects {
       const double eef_step = 0.05;
       double fraction = move_group->computeCartesianPath(WayPoints, eef_step, jump_threshold, trajectory, true);
       bool success = false;
-      std::cout << fraction << std::endl;
+      //std::cout << fraction << std::endl;
 
       if (fraction == 1){
           my_plan.trajectory_ = trajectory;
@@ -259,7 +259,7 @@ class Push_objects {
     }
 
     bool PlanCartesian_ToHome(){
-      std::cout << "PlanCartesian_ToHome NOW!" << std::endl;
+      //std::cout << "PlanCartesian_ToHome NOW!" << std::endl;
 
       geometry_msgs::Pose StartPoint = move_group->getCurrentPose().pose;
 
@@ -280,7 +280,7 @@ class Push_objects {
       double fraction = 0.0;
       for(int i = 0; i<5;i++){
         fraction = move_group->computeCartesianPath(WayPoints, eef_step, jump_threshold, trajectory, true);
-        std::cout <<"home: "<< fraction <<" attempt: "<<i<< std::endl;
+        //std::cout <<"home: "<< fraction <<" attempt: "<<i<< std::endl;
 
         if (fraction == 1){
           my_plan.trajectory_ = trajectory;
@@ -307,7 +307,7 @@ class Push_objects {
 
       //add_collision_Items(Centroids);
 
-      std::cout << "w: " <<target_pose.orientation.w << " x: " <<target_pose.orientation.x << " y: " <<target_pose.orientation.y<< " z: " <<target_pose.orientation.z<< std::endl;
+      //std::cout << "w: " <<target_pose.orientation.w << " x: " <<target_pose.orientation.x << " y: " <<target_pose.orientation.y<< " z: " <<target_pose.orientation.z<< std::endl;
 
       //create goal pose
       goal_pose = target_pose;
@@ -330,28 +330,51 @@ class Push_objects {
       success = PlanCartesian_ToPoint();
       //Remove_collision_Items();
       result_.result = success;
-      if(success){
-        //move to point
-        move_group->execute(my_plan);
-        //push to goal
-        sleep(1);
-        success = PlanCartesian_Push();
-        result_.result = success;
-        if(success){
-          //Push to point
-          move_group->execute(my_plan);
-          sleep(1);
-        }
-        success = PlanCartesian_ToHome();
-        result_.result = success;
-        if(success){
-          //go to home
-          std::cout <<"go home" << std::endl;
-          move_group->execute(my_plan);
-          as_.setSucceeded(result_);
-        }
-        sleep(1);
-      }
+      if(success)
+	{
+	  //move to point
+	  move_group->execute(my_plan);
+	  //push to goal
+	  sleep(1);
+	  success = PlanCartesian_Push();
+	  result_.result = success;
+	  if(success)
+	    {
+	      //Push to point
+	      move_group->execute(my_plan);
+	      sleep(1);
+	    }
+	  else
+	    {
+	      PlanCartesian_ToHome();
+	      result_.result = success;
+	      as_.setAborted();
+	    }
+	  
+	  success = PlanCartesian_ToHome();
+	  result_.result = success;
+	  if(success)
+	    {
+	      //go to home
+	      //std::cout <<"go home" << std::endl;
+	      move_group->execute(my_plan);
+	      as_.setSucceeded();
+	    }
+	  else
+	    {
+	      //PlanCartesian_ToHome();
+	      result_.result = success;
+	      as_.setAborted();
+	    }
+
+	  //sleep(1);
+	}
+      else
+	{
+	  PlanCartesian_ToHome();
+	  result_.result = success;
+	  as_.setAborted();
+	}
     }
     
   public:

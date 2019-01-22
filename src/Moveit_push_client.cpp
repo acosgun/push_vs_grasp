@@ -35,62 +35,58 @@ int main (int argc, char **argv)
   boost::thread spin_thread(&spinThread);
   
   ROS_INFO("Waiting for action Client to startup.");
-  // wait for the action server to start
-
   ScanObjects_Action_client.waitForServer(); //will wait for infinite time
   ROS_INFO("ScanObjects_Action_client started");
-
   Pushing_Action_client.waitForServer(); //will wait for infinite time
   ROS_INFO("Pushing_Action_client started");
-
   Plan_Action_client.waitForServer(); //will wait for infinite time
   ROS_INFO("Plan_Action_client started");
-
-  
-  ///*
-  // send a goal to the action
-  kinect_segmentation::ScanObjectsGoal ScanObjects_goal;
-  push_vs_grasp::MoveItPushGoal Push_goal;
-while(true){
-  ScanObjects_Action_client.sendGoal(ScanObjects_goal);
-
-  //wait for the action to return
-  bool finished_before_timeout = ScanObjects_Action_client.waitForResult(ros::Duration(10.0));
-
-  if (finished_before_timeout)
-  {
-      ROS_INFO("ScanObjects Action successful!");
+ 
+  while(true)
+    {
+      //Scan Action
+      kinect_segmentation::ScanObjectsGoal ScanObjects_goal;
+      ScanObjects_Action_client.sendGoal(ScanObjects_goal);
+      ScanObjects_Action_client.waitForResult();
       kinect_segmentation::ScanObjectsResult Scan_Result = *ScanObjects_Action_client.getResult();
+      actionlib::SimpleClientGoalState scan_state = ScanObjects_Action_client.getState();
+      ROS_INFO("Scan Action finished: %s",scan_state.toString().c_str());
 
-      //Box2d
+      if (scan_state == actionlib::SimpleClientGoalState::SUCCEEDED)
+	{
+	  if (Scan_Result.centroids.empty())
+	    {
+	      ROS_INFO("TABLE CLEARED SUCCESSFULLY!");
+	      return 0;
+	    }
+	}
+      
+      //Plan Action
       push_vs_grasp::PlanGoal planner_goal;
       planner_goal.all_centroids = Scan_Result.centroids;
       Plan_Action_client.sendGoal(planner_goal);
       bool plan_result = Plan_Action_client.waitForResult();
-      //
+      actionlib::SimpleClientGoalState plan_state = Plan_Action_client.getState();
+      ROS_INFO("Plan Action finished: %s",plan_state.toString().c_str());      
 
-
-      
+      //Push Action
+      push_vs_grasp::MoveItPushGoal Push_goal;
       Push_goal.all_centroids = Scan_Result.centroids;
       std::vector<geometry_msgs::PointStamped> Centroids = Scan_Result.centroids; 
-      geometry_msgs::PointStamped goalXYZ ;
-      //Randomly choose a point from the array
-      int Centroid_indx = rand() % (static_cast<int>(Centroids.size()) + 1);
+      geometry_msgs::PointStamped goalXYZ;
+      int Centroid_indx = rand() % (static_cast<int>(Centroids.size()) + 1); //Randomly choose a point from the array
       goalXYZ.point.x = Centroids[Centroid_indx].point.x;
       goalXYZ.point.y = Centroids[Centroid_indx].point.y;
       goalXYZ.point.z = Centroids[Centroid_indx].point.z;
-
       Push_goal.obj_centroid  = goalXYZ;
       Pushing_Action_client.sendGoal(Push_goal);
-  }
-  else
-    ROS_INFO("Action did not finish before the time out.");
-  //exit
-
-sleep(0.1);
-}
+      Pushing_Action_client.waitForResult();
+      actionlib::SimpleClientGoalState push_state = Pushing_Action_client.getState();
+      ROS_INFO("Push Action finished: %s",plan_state.toString().c_str());      
+      //sleep(0.1);    
+    }
 //*/
-  ros::shutdown();
-  spin_thread.join();
+  //ros::shutdown();
+  //spin_thread.join();
   return 0;
 }
