@@ -22,7 +22,7 @@ import time
 from push_vs_grasp.msg import RealPickPlaceAction
 
 #GLOBAL VARIABLES
-gripperOffset = 0.09
+gripperOffset = 0.25
 
 class RealPickPlaceServer:
   def __init__(self):
@@ -43,10 +43,11 @@ class RealPickPlaceServer:
     rospy.loginfo("Real Pick Place Server ON")
 
   def init_gripper(self):
+    time.sleep(2)
     self.Grip.rACT = 0
     self.Grip.rPR = 0
     self.Grip.rGTO = 0
-    self.Grip.rSP  = 0
+    self.Grip.rSP  = 255
     self.Grip.rFR = 0
     self.Grip.rATR = 0
     self.pub.publish(self.Grip)
@@ -110,7 +111,7 @@ class RealPickPlaceServer:
     self.group = group
 
   def Gripper_close(self):
-    self.Grip.rPR = 255
+    self.Grip.rPR = 105
     self.pub.publish(self.Grip)
     time.sleep(2)
 
@@ -122,6 +123,7 @@ class RealPickPlaceServer:
   def Cartesian_To_Pick(self):
     print("Pick")
     self.Gripper_open()
+
     group = self.group
     waypoints = []
     wpose = group.get_current_pose().pose
@@ -132,7 +134,7 @@ class RealPickPlaceServer:
     wpose.position.y = self.Target_pose.position.y
     waypoints.append(copy.deepcopy(wpose))
 
-    wpose.position.z = 0.2
+    wpose.position.z = gripperOffset
     waypoints.append(copy.deepcopy(wpose))
 
     (plan, fraction) = group.compute_cartesian_path(
@@ -146,8 +148,9 @@ class RealPickPlaceServer:
       success = True
       group.execute(plan)
       time.sleep(1)
+      self.Gripper_close()
 
-    self.Gripper_close()
+
 
     wpose.position.z = 0.4
     group.set_pose_target(self.home_pose)
@@ -171,7 +174,7 @@ class RealPickPlaceServer:
     wpose.position.y = self.Goal_pose.position.y
     waypoints.append(copy.deepcopy(wpose))
 
-    wpose.position.z = self.Goal_pose.position.z
+    wpose.position.z = gripperOffset
     waypoints.append(copy.deepcopy(wpose))
 
     (plan, fraction) = group.compute_cartesian_path(
@@ -185,8 +188,9 @@ class RealPickPlaceServer:
       success = True
       group.execute(plan)
       time.sleep(1)
+      self.Gripper_open()
 
-    self.Gripper_open()
+
 
     wpose.position.z = 0.4
     group.set_pose_target(self.home_pose)
@@ -205,12 +209,6 @@ class RealPickPlaceServer:
    
     waypoints = []
     wpose = group.get_current_pose().pose
-
-    wpose.position.y = 0
-    waypoints.append(copy.deepcopy(wpose))
-
-    wpose.position.x = -0.4
-    waypoints.append(copy.deepcopy(wpose))
 
     wpose.position.y = self.home_pose.position.y
     waypoints.append(copy.deepcopy(wpose))
@@ -253,8 +251,8 @@ class RealPickPlaceServer:
 
     if(success):
       #Find placement position, move the arm there (random for now)
-      min_x = -0.4
-      max_x = -0.2
+      min_x = -0.5
+      max_x = -0.4
       min_y = -0.3
       max_y = 0.3
       import random
