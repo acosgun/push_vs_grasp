@@ -5,7 +5,20 @@
   <arg name="robot_ip" unless="$(arg sim)"  default ="10.0.0.99"/>
   <arg name="debug" default="false" />
   <arg name="limited" default="true" />
-  
+
+  <!-- Goal Regions -->
+  <!-- Run openni.launch -> ar_tracking.launch -> rostopic echo /ar_pose_marker -->
+  <!-- ID 0 = Red -->
+  <!-- ID 1 = Blue -->
+  <arg name="redGoal_x" value ="-0.193161775668"/>
+  <arg name="redGoal_y" value ="-0.0121647480609"/>
+  <arg name="redGoal_z" value ="1.04787659498"/>
+
+  <arg name="blueGoal_x" value ="0.218119555785"/>
+  <arg name="blueGoal_y" value ="0.0167020967658"/>
+  <arg name="blueGoal_z" value ="1.02159262881"/>
+
+
   <!-- simulation -->
   <group if="$(arg sim)">    
     <include file="$(find push_vs_grasp)/launch/gazebo.launch"/>    
@@ -13,7 +26,17 @@
     <include file="$(find push_vs_grasp)/launch/spawn_kinect.launch"/>
     <include file="$(find push_vs_grasp)/launch/ur5.launch"/>
     <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>
-    <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>
+    <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"> 
+      <arg name="sim" value="$(arg sim)"/>
+      <arg name="point_cloud_topic" value="/camera/depth/points"/>
+      <arg name="redGoal_x" value ="$(arg redGoal_x)"/>
+      <arg name="redGoal_y" value ="$(arg redGoal_y)"/>
+      <arg name="redGoal_z" value ="$(arg redGoal_z)"/>
+      <arg name="blueGoal_x" value ="$(arg blueGoal_x)"/>
+      <arg name="blueGoal_y" value ="$(arg blueGoal_y)"/>
+      <arg name="blueGoal_z" value ="$(arg blueGoal_z)"/>
+    </include>
+
     <!--<include file="$(find push_vs_grasp)/launch/sim_pick_place.launch"/>-->
     <!--<include file="$(find push_vs_grasp)/launch/task_planner.launch"/>-->
   </group>
@@ -24,7 +47,18 @@
       <arg name="robot_ip" value="$(arg robot_ip)" />
     </include>
     <!--<include file="$(find openni_launch)/launch/openni.launch"/>-->
-    <!--<include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>-->    
+    <!--<include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>-->   
+    <include file="$(find push_vs_grasp)/launch/openni.launch"/>
+    <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"> 
+      <arg name="sim" value="$(arg sim)"/>
+      <arg name="point_cloud_topic" value="/camera/depth_registered/points"/>
+      <arg name="redGoal_x" value ="$(arg redGoal_x)"/>
+      <arg name="redGoal_y" value ="$(arg redGoal_y)"/>
+      <arg name="redGoal_z" value ="$(arg redGoal_z)"/>
+      <arg name="blueGoal_x" value ="$(arg blueGoal_x)"/>
+      <arg name="blueGoal_y" value ="$(arg blueGoal_y)"/>
+      <arg name="blueGoal_z" value ="$(arg blueGoal_z)"/>
+    </include>
   </group>
   
   <!-- moveit -->
