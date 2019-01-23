@@ -63,7 +63,10 @@ int main (int argc, char **argv)
       
       //Plan Action
       push_vs_grasp::PlanGoal planner_goal;
-      planner_goal.all_centroids = Scan_Result.centroids;
+      planner_goal.centroids = Scan_Result.centroids;
+      planner_goal.colors = Scan_Result.colors;
+      planner_goal.red_goal = Scan_Result.red_goal;
+      planner_goal.blue_goal = Scan_Result.blue_goal;      
       Plan_Action_client.sendGoal(planner_goal);
       bool plan_result = Plan_Action_client.waitForResult();
       actionlib::SimpleClientGoalState plan_state = Plan_Action_client.getState();

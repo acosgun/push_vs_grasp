@@ -33,6 +33,8 @@
 #include <Box2D/Common/b2Draw.h>
 #include <Box2D/Common/b2Timer.h>
 #include <new>
+#include <string>
+#include <iostream>
 
 b2World::b2World(const b2Vec2& gravity)
 {
@@ -1148,6 +1150,32 @@ void b2World::DrawDebugData()
 			const b2Transform& xf = b->GetTransform();
 			for (b2Fixture* f = b->GetFixtureList(); f; f = f->GetNext())
 			{
+
+			  if (b->GetUserData() != NULL)
+			    {
+			      std::string *custom_color = (std::string*)b->GetUserData();
+			      if (*custom_color == "red") {
+				DrawShape(f, xf, b2Color(1.0f, 0.0f, 0.0f));
+				continue;
+				}
+			      else if (*custom_color == "blue") {
+				DrawShape(f, xf, b2Color(0.0f, 0.0f, 1.0f));
+				continue;
+			      }
+			      else if (*custom_color == "red_goal") {
+				DrawShape(f, xf, b2Color(0.7f, 0.1f, 0.1f));
+				continue;
+			      }
+			      else if (*custom_color == "blue_goal") {
+				DrawShape(f, xf, b2Color(0.1f, 0.1f, 0.7f));
+				continue;
+			      }
+			      else if (*custom_color == "gray") {
+				DrawShape(f, xf, b2Color(0.3f, 0.3f, 0.3f));
+				continue;
+			      }			      
+			    }
+			  
 				if (b->IsActive() == false)
 				{
 					DrawShape(f, xf, b2Color(0.5f, 0.5f, 0.3f));

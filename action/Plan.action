@@ -1,5 +1,8 @@
 # Define the goal
-geometry_msgs/PointStamped[] all_centroids
+geometry_msgs/PointStamped[] centroids
+string[] colors
+geometry_msgs/PointStamped red_goal
+geometry_msgs/PointStamped blue_goal
 ---
 # Define the result
 bool result
