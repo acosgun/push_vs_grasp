@@ -150,7 +150,7 @@ static void sPrintLog(GLuint object)
 
 //
 static GLuint sCreateShaderFromString(const char* source, GLenum type)
-{
+{	
 	GLuint res = glCreateShader(type);
 	const char* sources[] = { source };
 	glShaderSource(res, 1, sources, NULL);
@@ -194,10 +194,11 @@ static GLuint sCreateShaderProgram(const char* vs, const char* fs)
 //
 struct GLRenderPoints
 {
-	void Create()
-	{
-		const char* vs = \
-        "#version 400\n"
+  void Create()
+  {
+    const char* vs = \
+      "#version 300 es\n"
+      	"precision mediump float;\n"
         "uniform mat4 projectionMatrix;\n"
         "layout(location = 0) in vec2 v_position;\n"
         "layout(location = 1) in vec4 v_color;\n"
@@ -211,7 +212,8 @@ struct GLRenderPoints
         "}\n";
         
 		const char* fs = \
-        "#version 400\n"
+        "#version 300 es\n"
+	"precision mediump float;\n"
         "in vec4 f_color;\n"
         "out vec4 color;\n"
         "void main(void)\n"
@@ -341,7 +343,8 @@ struct GLRenderLines
 	void Create()
 	{
 		const char* vs = \
-        "#version 400\n"
+        "#version 300 es\n"
+	"precision mediump float;\n"
         "uniform mat4 projectionMatrix;\n"
         "layout(location = 0) in vec2 v_position;\n"
         "layout(location = 1) in vec4 v_color;\n"
@@ -353,7 +356,8 @@ struct GLRenderLines
         "}\n";
         
 		const char* fs = \
-        "#version 400\n"
+        "#version 300 es\n"
+	"precision mediump float;\n"
         "in vec4 f_color;\n"
         "out vec4 color;\n"
         "void main(void)\n"
@@ -469,7 +473,8 @@ struct GLRenderTriangles
 	void Create()
 	{
 		const char* vs = \
-			"#version 400\n"
+			"#version 300 es\n"
+		  	"precision mediump float;\n"
 			"uniform mat4 projectionMatrix;\n"
 			"layout(location = 0) in vec2 v_position;\n"
 			"layout(location = 1) in vec4 v_color;\n"
@@ -481,7 +486,8 @@ struct GLRenderTriangles
 			"}\n";
 
 		const char* fs = \
-			"#version 400\n"
+			"#version 300 es\n"
+		  	"precision mediump float;\n"
 			"in vec4 f_color;\n"
             "out vec4 color;\n"
 			"void main(void)\n"
@@ -508,7 +514,7 @@ struct GLRenderTriangles
 		glBufferData(GL_ARRAY_BUFFER, sizeof(m_vertices), m_vertices, GL_DYNAMIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
-		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+	        glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 		glBufferData(GL_ARRAY_BUFFER, sizeof(m_colors), m_colors, GL_DYNAMIC_DRAW);
 
 		sCheckGLError();
