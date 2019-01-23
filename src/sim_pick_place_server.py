@@ -23,7 +23,7 @@ import time
 from push_vs_grasp.msg import SimPickPlaceAction
 
 #GLOBAL VARIABLES
-gripperOffset = 0.09
+gripperOffset = 0.15
 
 class SimPickPlaceServer:
   def __init__(self):
@@ -138,7 +138,7 @@ class SimPickPlaceServer:
     joint_goal[0] = 0
     joint_goal[1] = -0.4*pi
     joint_goal[2] = -0.7*pi
-    joint_goal[3] = -0.4*pi
+    joint_goal[3] = -0.3*pi
     joint_goal[4] = 0.5*pi
     joint_goal[5] = 0
     group.go(joint_goal, wait=True)
@@ -152,7 +152,7 @@ class SimPickPlaceServer:
     ## Send Arm over the Object with some z offset
     x = goal.obj_centroid.point.x
     y = goal.obj_centroid.point.y
-    z = goal.obj_centroid.point.z + 0.1
+    z = goal.obj_centroid.point.z + gripperOffset
     self.move_arm_overhead(x,y,z)
     
     #Associate the centroid with one of the cylindrical objects in Gazebo
@@ -170,7 +170,7 @@ class SimPickPlaceServer:
     import random
     x = random.uniform(min_x,max_x)
     y = random.uniform(min_y,max_y)
-    z = obj_state.pose.position.z + 0.1
+    z = obj_state.pose.position.z + gripperOffset
     self.move_arm_overhead(x,y,z)
     
     #Drop Object
