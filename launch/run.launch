@@ -6,10 +6,21 @@
   <arg name="debug" default="false" />
   <arg name="limited" default="true" />
 
+  <!-- Calibration -->
+  <!-- 1. Run roslaunch push_vs_grasp ar_tracking.launch-->
+  <!-- 2. Run rosrun tf tf_echo /ar_marker_2 /camera_link-->
+  <!-- 3. Input results below -->
+  <arg name="x_cal" value="-0.707"/>
+  <arg name="y_cal" value="-0.189"/>
+  <arg name="z_cal" value="0.742"/>
+  <arg name="r_cal" value="-2.104"/>
+  <arg name="p_cal" value="0.045"/>
+  <arg name="yaw_cal" value="-1.445"/>
+
+
   <!-- Goal Regions -->
   <!-- Run openni.launch -> ar_tracking.launch -> rostopic echo /ar_pose_marker -->
-  <!-- ID 0 = Red -->
-  <!-- ID 1 = Blue -->
+  <!-- ID 0 = Red; ID 1 = Blue; ID 2 = Calibration -->
   <arg name="redGoal_x" value ="-0.193161775668"/>
   <arg name="redGoal_y" value ="-0.0121647480609"/>
   <arg name="redGoal_z" value ="1.04787659498"/>
@@ -36,7 +47,6 @@
       <arg name="blueGoal_y" value ="$(arg blueGoal_y)"/>
       <arg name="blueGoal_z" value ="$(arg blueGoal_z)"/>
     </include>
-
     <!--<include file="$(find push_vs_grasp)/launch/sim_pick_place.launch"/>-->
     <!--<include file="$(find push_vs_grasp)/launch/task_planner.launch"/>-->
   </group>
@@ -48,7 +58,14 @@
     </include>
     <!--<include file="$(find openni_launch)/launch/openni.launch"/>-->
     <!--<include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>-->   
-    <include file="$(find push_vs_grasp)/launch/openni.launch"/>
+    <include file="$(find push_vs_grasp)/launch/openni.launch">
+      <arg name="x_cal" value="$(eval x_cal - 0.9)"/>
+      <arg name="y_cal" value="$(arg y_cal)"/>
+      <arg name="z_cal" value="$(arg z_cal)"/>
+      <arg name="r_cal" value="$(arg r_cal)"/>
+      <arg name="p_cal" value="$(arg p_cal)"/>
+      <arg name="yaw_cal" value="$(arg yaw_cal)"/>
+    </include>
     <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"> 
       <arg name="sim" value="$(arg sim)"/>
       <arg name="point_cloud_topic" value="/camera/depth_registered/points"/>
