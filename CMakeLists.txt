@@ -83,8 +83,6 @@ add_action_files(
   DIRECTORY
   action
   FILES
-  SimPickPlace.action
-  RealPickPlace.action
   PickPlace.action
   MoveItPush.action
   Plan.action
