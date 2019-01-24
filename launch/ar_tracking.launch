@@ -1,6 +1,26 @@
 <launch>
+
+	<arg name="x_cal" value="0.0"/>
+	<arg name="y_cal" value="0.0"/>
+	<arg name="z_cal" value="0.0"/>
+
+	<arg name="r_cal" value="0.0"/>
+	<arg name="p_cal" value="0.0"/>
+	<arg name="yaw_cal" value="0.0"/>
+
+	<include file="$(find push_vs_grasp)/launch/openni.launch">
+      <arg name="x_cal" value="$(arg x_cal)"/>
+      <arg name="y_cal" value="$(arg y_cal)"/>
+      <arg name="z_cal" value="$(arg z_cal)"/>
+      <arg name="r_cal" value="$(arg r_cal)"/>
+      <arg name="p_cal" value="$(arg p_cal)"/>
+      <arg name="yaw_cal" value="$(arg yaw_cal)"/>
+     </include>
+
+
+
 	<arg name="marker_size" default="5" />
-	<arg name="max_new_marker_error" default="0.08" />
+	<arg name="max_new_marker_error" default="0.25" />
 	<arg name="max_track_error" default="0.05" />
 
 	<arg name="cam_image_topic" default="/camera/depth_registered/points" />
