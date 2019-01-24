@@ -1,4 +1,0 @@
-<launch>
-  <node pkg="push_vs_grasp" name="sim_pick_place_node" type="sim_pick_place_server.py" output="screen">
-  </node>
-</launch>
