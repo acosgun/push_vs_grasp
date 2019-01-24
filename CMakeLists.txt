@@ -85,6 +85,7 @@ add_action_files(
   FILES
   SimPickPlace.action
   RealPickPlace.action
+  PickPlace.action
   MoveItPush.action
   Plan.action
 )
