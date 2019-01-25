@@ -29,30 +29,43 @@ gripperOffset = 0.25
 class PickPlaceServer:
   def __init__(self):
     #Gazebo Simluation
-    rospy.wait_for_service("gazebo/get_model_state")
-    rospy.wait_for_service("gazebo/set_model_state")
-    self.get_model_state = rospy.ServiceProxy("/gazebo/get_model_state", GetModelState)
-    self.set_model_state = rospy.ServiceProxy("/gazebo/set_model_state", SetModelState)
-    self.obj_name =" "
+
     self.sim = rospy.get_param('~sim')
     self.init_moveit()
 
-    self.Grip = Robotiq2FGripper_robot_output()
+    self.init_gazebo()
+    self.init_real()
+
+    self.obj_name ="n/a"
+    self.obj_state = 'n/a'
+
 
     self.home_pose = geometry_msgs.msg.Pose()
     self.Goal_pose = geometry_msgs.msg.Pose()
     self.Target_pose = geometry_msgs.msg.Pose()
-    self.obj_state = 'n/a'
 
     self.server = actionlib.SimpleActionServer('pick_place', PickPlaceAction, self.executeCB, False)
-    self.pub = rospy.Publisher('/Robotiq2FGripperRobotOutput', Robotiq2FGripper_robot_output, queue_size=10)
 
     self.init_home_pose()
-    self.init_gripper()
 
     self.go_home()
     self.server.start()    
     rospy.loginfo("Pick Place Server ON")
+
+  def init_gazebo(self):
+
+    if(self.sim):
+      rospy.wait_for_service("gazebo/get_model_state")
+      rospy.wait_for_service("gazebo/set_model_state")
+      self.get_model_state = rospy.ServiceProxy("/gazebo/get_model_state", GetModelState)
+      self.set_model_state = rospy.ServiceProxy("/gazebo/set_model_state", SetModelState)
+
+  def init_real(self):
+    if not (self.sim):
+      self.Grip = Robotiq2FGripper_robot_output()
+      self.pub = rospy.Publisher('/Robotiq2FGripperRobotOutput', Robotiq2FGripper_robot_output, queue_size=10)
+      self.init_gripper()
+
 
   def vanish_gazebo_object(self, obj_name):
     state = ModelState()
@@ -187,8 +200,13 @@ class PickPlaceServer:
     waypoints = []
     wpose = group.get_current_pose().pose
 
-    wpose.position.x = self.Target_pose.position.x
-    waypoints.append(copy.deepcopy(wpose))
+
+    if not self.sim:
+      wpose.position.x = self.Target_pose.position.x + 0.02
+      waypoints.append(copy.deepcopy(wpose))
+    else:  
+      wpose.position.x = self.Target_pose.position.x
+      waypoints.append(copy.deepcopy(wpose))
 
     wpose.position.y = self.Target_pose.position.y
     waypoints.append(copy.deepcopy(wpose))
