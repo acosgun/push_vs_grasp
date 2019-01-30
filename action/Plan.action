@@ -5,7 +5,8 @@ geometry_msgs/PointStamped red_goal
 geometry_msgs/PointStamped blue_goal
 ---
 # Define the result
-bool result
+bool goal_reached
 geometry_msgs/PointStamped obj_centroid
+geometry_msgs/PointStamped placement
 ---
 # Define a feedback message

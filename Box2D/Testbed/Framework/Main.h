@@ -180,13 +180,14 @@ static void setup_box2d()
   //glfwTerminate();
 }
 
-static void draw_stuff()
+static void draw_stuff(bool step)
 {
   glfwGetWindowSize(mainWindow, &g_camera.m_width, &g_camera.m_height);
   glViewport(0, 0, g_camera.m_width, g_camera.m_height);  
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  sSimulate();
+  if (step)
+    sSimulate();
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDisable(GL_DEPTH_TEST);

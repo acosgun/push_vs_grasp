@@ -22,7 +22,7 @@ add_subdirectory(Box2D)
 
 if(BOX2D_BUILD_EXAMPLES)
   # HelloWorld console example.
-  add_subdirectory(HelloWorld)
+  #add_subdirectory(HelloWorld)
 
   # Testbed and dependencies.
   find_package(OpenGL REQUIRED)

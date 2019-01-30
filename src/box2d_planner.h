@@ -44,14 +44,17 @@ class Box2DPlanner: public Test
     ApplyForce *test_derived = static_cast<ApplyForce*>(test);
     test_derived->destroy_all_objects();
     test_derived->setup_objects(goal->centroids, goal->colors, goal->red_goal, goal->blue_goal);
+    geometry_msgs::PointStamped obj_centroid;
+    geometry_msgs::PointStamped placement;
+    bool goal_reached;
+    test_derived->plan(obj_centroid, placement, goal_reached);
 
-    while(true) {
-      draw_stuff(); //defined in Main.h
-      sleep(0.25);
-      break;
-    }
+    draw_stuff(true); //defined in Main.h
     
     push_vs_grasp::PlanResult result_;
+    result_.obj_centroid = obj_centroid;
+    result_.placement = placement;
+    result_.goal_reached = goal_reached;
     as_.setSucceeded(result_);
   }
 

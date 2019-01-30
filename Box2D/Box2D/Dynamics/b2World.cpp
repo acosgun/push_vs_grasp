@@ -1153,24 +1153,26 @@ void b2World::DrawDebugData()
 
 			  if (b->GetUserData() != NULL)
 			    {
-			      std::string *custom_color = (std::string*)b->GetUserData();
-			      if (*custom_color == "red") {
+			      bodyUserData* udStruct = (bodyUserData*)b->GetUserData();
+			      std::string custom_color = udStruct->str;
+			      //std::string *custom_color = (std::string*)b->GetUserData();
+			      if (custom_color == "red") {
 				DrawShape(f, xf, b2Color(1.0f, 0.0f, 0.0f));
 				continue;
 				}
-			      else if (*custom_color == "blue") {
+			      else if (custom_color == "blue") {
 				DrawShape(f, xf, b2Color(0.0f, 0.0f, 1.0f));
 				continue;
 			      }
-			      else if (*custom_color == "red_goal") {
+			      else if (custom_color == "red_goal") {
 				DrawShape(f, xf, b2Color(0.7f, 0.1f, 0.1f));
 				continue;
 			      }
-			      else if (*custom_color == "blue_goal") {
+			      else if (custom_color == "blue_goal") {
 				DrawShape(f, xf, b2Color(0.1f, 0.1f, 0.7f));
 				continue;
 			      }
-			      else if (*custom_color == "gray") {
+			      else if (custom_color == "gray") {
 				DrawShape(f, xf, b2Color(0.3f, 0.3f, 0.3f));
 				continue;
 			      }			      

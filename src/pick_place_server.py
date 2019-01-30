@@ -25,12 +25,13 @@ from push_vs_grasp.msg import PickPlaceAction
 
 #GLOBAL VARIABLES
 gripperOffset = 0.25
-
+gripperOffset_sim = 0.32
 class PickPlaceServer:
   def __init__(self):
     #Gazebo Simluation
 
     self.sim = rospy.get_param('~sim')
+    
     self.init_moveit()
 
     self.init_gazebo()
@@ -211,9 +212,15 @@ class PickPlaceServer:
     wpose.position.y = self.Target_pose.position.y
     waypoints.append(copy.deepcopy(wpose))
 
-    wpose.position.z = gripperOffset
-    waypoints.append(copy.deepcopy(wpose))
 
+    if not self.sim:
+      wpose.position.z = gripperOffset
+      waypoints.append(copy.deepcopy(wpose))
+    else:
+      wpose.position.z = gripperOffset_sim
+      waypoints.append(copy.deepcopy(wpose))
+
+    
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
                                        0.05,        # eef_step
@@ -256,8 +263,13 @@ class PickPlaceServer:
     wpose.position.y = self.Goal_pose.position.y
     waypoints.append(copy.deepcopy(wpose))
 
-    wpose.position.z = gripperOffset
-    waypoints.append(copy.deepcopy(wpose))
+    if not self.sim:
+      wpose.position.z = gripperOffset
+      waypoints.append(copy.deepcopy(wpose))
+    else:
+      wpose.position.z = gripperOffset_sim
+      waypoints.append(copy.deepcopy(wpose))
+    
 
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow

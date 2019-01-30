@@ -47,8 +47,6 @@
       <arg name="blueGoal_y" value ="$(arg blueGoal_y)"/>
       <arg name="blueGoal_z" value ="$(arg blueGoal_z)"/>
     </include>
-    <!--<include file="$(find push_vs_grasp)/launch/sim_pick_place.launch"/>-->
-    <!--<include file="$(find push_vs_grasp)/launch/task_planner.launch"/>-->
   </group>
 
   <!-- real Robot -->
@@ -77,6 +75,11 @@
       <arg name="blueGoal_z" value ="$(arg blueGoal_z)"/>
     </include>
   </group>
+
+  <!-- actionlib servers -->
+  <include file="$(find push_vs_grasp)/launch/pick_place.launch"/>
+  <include file="$(find push_vs_grasp)/launch/Push_action.launch"/>
+  <include file="$(find push_vs_grasp)/launch/box2d_planner.launch"/>
   
   <!-- moveit -->
   <include file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch">

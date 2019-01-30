@@ -25,6 +25,7 @@
 #include <Box2D/Dynamics/b2ContactManager.h>
 #include <Box2D/Dynamics/b2WorldCallbacks.h>
 #include <Box2D/Dynamics/b2TimeStep.h>
+#include <string>
 
 struct b2AABB;
 struct b2BodyDef;
@@ -34,6 +35,12 @@ class b2Body;
 class b2Draw;
 class b2Fixture;
 class b2Joint;
+
+struct bodyUserData {
+  int id;
+  std::string str;
+};
+
 
 /// The world class manages all physics entities, dynamic simulation,
 /// and asynchronous queries. The world also contains efficient memory

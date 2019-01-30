@@ -1,5 +1,6 @@
 # Define the goal
 geometry_msgs/PointStamped obj_centroid
+geometry_msgs/PointStamped placement
 ---
 # Define the result
 uint32 result
