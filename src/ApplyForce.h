@@ -16,6 +16,7 @@ class ApplyForce : public Test
 
  private:
   std::vector<geometry_msgs::PointStamped> centroids;
+  std::vector<double> radiuses;
   std::vector<std::string> colors;
   geometry_msgs::PointStamped red_goal;
   geometry_msgs::PointStamped blue_goal;
@@ -98,7 +99,9 @@ class ApplyForce : public Test
 	    double angle_init = cur_body->GetAngle();
 
 	    set_sensor_status(cur_body, true);
-
+	    double cur_radius = get_obj_radius(cur_body);
+	    set_obj_radius(cur_body, cur_radius + 0.02); //padding
+	    
 	    cur_body->SetTransform(b2Vec2(x_sampled,y_sampled), angle_init); //uniform angle sampling
 
 	    //check if proposition satisfies goal
@@ -109,6 +112,7 @@ class ApplyForce : public Test
 	    bool in_collision_2 = coll_check(cur_body, blue_bodies);
 	    
 	    cur_body->SetTransform(b2Vec2(x_init,y_init), angle_init);
+	    set_obj_radius(cur_body, cur_radius);
 	    set_sensor_status(cur_body, false);
 
 	    if (local_goal_satisfied && !in_collision_1 && !in_collision_2)
@@ -125,6 +129,18 @@ class ApplyForce : public Test
 	  }
 	}
 
+	double get_obj_radius(b2Body* b) {
+	  b2Fixture* F = b->GetFixtureList();
+	  b2CircleShape* circle = (b2CircleShape*) F->GetShape();
+	  return circle->m_radius;
+	  //return circle->GetRadius();
+	}
+	void set_obj_radius(b2Body* b, double radius) {
+	  b2Fixture* F = b->GetFixtureList();
+	  b2CircleShape* circle = (b2CircleShape*) F->GetShape();
+	  circle->m_radius = radius;
+	}
+	
 	int get_body_id(b2Body* b) {
 	  if (b->GetUserData() != NULL) {
 	    bodyUserData* udStruct = (bodyUserData*)b->GetUserData();
@@ -258,17 +274,18 @@ class ApplyForce : public Test
 	    }
 	}
 	
-	void setup_objects(std::vector<geometry_msgs::PointStamped> centroids, std::vector<std::string> colors, geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal)
+	void setup_objects(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses, std::vector<std::string> colors, geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal)
 	{
 	  setup_table(red_goal, blue_goal);
 	  this->centroids = centroids;
+	  this->radiuses = radiuses;
 	  this->colors = colors;
 	  this->red_goal = red_goal;
 	  this->blue_goal = blue_goal;
-	  draw_table(centroids, colors, red_goal, blue_goal);
+	  draw_table(centroids, radiuses, colors, red_goal, blue_goal);
 	}
 	
-	void draw_table (std::vector<geometry_msgs::PointStamped> centroids, std::vector<std::string> colors, geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal)
+	void draw_table (std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses, std::vector<std::string> colors, geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal)
 	{
 	  for (int i=0; i<centroids.size(); i++) {
 	    b2BodyDef myBodyDef;
@@ -283,8 +300,8 @@ class ApplyForce : public Test
 	  
 	    b2CircleShape circleShape;
 	    circleShape.m_p.Set(0, 0); //position, relative to body position
-	    circleShape.m_radius = 0.025*pix_coeff; //radius	  
-
+	    circleShape.m_radius = radiuses[i]*pix_coeff; //radius	  
+	    
 	    b2FixtureDef myFixtureDef;
 	    myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
 	    dynamicBody1->CreateFixture(&myFixtureDef); //add a fixture to the body

@@ -43,7 +43,7 @@ class Box2DPlanner: public Test
  
     ApplyForce *test_derived = static_cast<ApplyForce*>(test);
     test_derived->destroy_all_objects();
-    test_derived->setup_objects(goal->centroids, goal->colors, goal->red_goal, goal->blue_goal);
+    test_derived->setup_objects(goal->centroids, goal->radiuses, goal->colors, goal->red_goal, goal->blue_goal);
     geometry_msgs::PointStamped obj_centroid;
     geometry_msgs::PointStamped placement;
     bool goal_reached;
