@@ -82,9 +82,9 @@
   </group>
 
   <!-- actionlib servers -->
-  <include file="$(find push_vs_grasp)/launch/pick_place.launch">
+  <!-- <include file="$(find push_vs_grasp)/launch/pick_place.launch">
 	<arg name="sim" value="$(arg sim)"/>
-  </include>
+  </include>-->
 
   <include file="$(find push_vs_grasp)/launch/Push_action.launch"/>
   <include file="$(find push_vs_grasp)/launch/box2d_planner.launch"/>
