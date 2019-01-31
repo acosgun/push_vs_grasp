@@ -54,6 +54,7 @@ class PickPlaceServer:
     rospy.loginfo("Pick Place Server ON")
 
   def init_moveit(self):
+
     robot = moveit_commander.RobotCommander()
 
     if self.sim == "true":
@@ -246,7 +247,7 @@ class PickPlaceServer:
 
 
     wpose.position.z = 0.4
-    group.set_pose_target(self.home_pose)
+    group.set_pose_target(wpose)
 
     plan = group.go(wait=True)
 
@@ -254,6 +255,10 @@ class PickPlaceServer:
 
   def Cartesian_To_Place(self):
     print("Place")
+    print(self.Goal_pose.position.x)
+    print(self.Goal_pose.position.y)
+    print(self.Goal_pose.position.z)
+
     group = self.group
     waypoints = []
     wpose = group.get_current_pose().pose
@@ -296,7 +301,7 @@ class PickPlaceServer:
 
 
     wpose.position.z = 0.4
-    group.set_pose_target(self.home_pose)
+    group.set_pose_target(wpose)
 
     plan = group.go(wait=True)
 
