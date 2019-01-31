@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-
+import sys
 #ROS
 import roslib
 roslib.load_manifest('push_vs_grasp')
@@ -30,7 +30,7 @@ class PickPlaceServer:
   def __init__(self):
     #Gazebo Simluation
 
-    self.sim = rospy.get_param('~sim')
+    self.sim = rospy.myargv(argv=sys.argv)[1]
     
     self.init_moveit()
 
@@ -53,9 +53,49 @@ class PickPlaceServer:
     self.server.start()    
     rospy.loginfo("Pick Place Server ON")
 
+  def init_moveit(self):
+    robot = moveit_commander.RobotCommander()
+
+    if self.sim == "true":
+      self.sim = True
+    print self.sim
+    scene = moveit_commander.PlanningSceneInterface("base_link")
+    time.sleep(2)
+    # Create table obstacle
+    p = PoseStamped()
+    p.header.frame_id = robot.get_planning_frame()
+    print p.header.frame_id
+    p.pose.position.x = -0.5
+    p.pose.position.y = 0
+    p.pose.position.z = -0.03
+    scene.add_box("table", p, (2, 2, 0.06))
+    time.sleep(2)
+
+    group_name = "manipulator"
+    self.group_name = group_name
+    group = moveit_commander.MoveGroupCommander(self.group_name)
+    planning_frame = group.get_planning_frame()
+    #print "============ Reference frame: %s" % planning_frame
+
+    # We can also print the name of the end-effector link for this group:
+    eef_link = group.get_end_effector_link()
+    #print "============ End effector: %s" % eef_link
+
+    # We can get a list of all the groups in the robot:
+    group_names = robot.get_group_names()
+    #print "============ Robot Groups:", robot.get_group_names()
+
+    # Sometimes for debugging it is useful to print the entire state of the
+    # robot:
+    #print "============ Printing robot state"
+    #print robot.get_current_state()
+    #print ""
+    self.group = group
+
   def init_gazebo(self):
 
     if(self.sim):
+      #time.sleep(5)
       rospy.wait_for_service("gazebo/get_model_state")
       rospy.wait_for_service("gazebo/set_model_state")
       self.get_model_state = rospy.ServiceProxy("/gazebo/get_model_state", GetModelState)
@@ -145,42 +185,6 @@ class PickPlaceServer:
 
     self.Target_pose = copy.deepcopy(self.home_pose)
     self.Goal_pose   = copy.deepcopy(self.home_pose)
-
-  def init_moveit(self):
-    robot = moveit_commander.RobotCommander()
-
-    scene = moveit_commander.PlanningSceneInterface("base_link")
-    time.sleep(2)
-    # Create table obstacle
-    p = PoseStamped()
-    p.header.frame_id = robot.get_planning_frame()
-    print p.header.frame_id
-    p.pose.position.x = -0.5
-    p.pose.position.y = 0
-    p.pose.position.z = -0.03
-    scene.add_box("table", p, (2, 2, 0.06))
-    time.sleep(2)
-
-    group_name = "manipulator"
-    self.group_name = group_name
-    group = moveit_commander.MoveGroupCommander(self.group_name)
-    planning_frame = group.get_planning_frame()
-    #print "============ Reference frame: %s" % planning_frame
-
-    # We can also print the name of the end-effector link for this group:
-    eef_link = group.get_end_effector_link()
-    #print "============ End effector: %s" % eef_link
-
-    # We can get a list of all the groups in the robot:
-    group_names = robot.get_group_names()
-    #print "============ Robot Groups:", robot.get_group_names()
-
-    # Sometimes for debugging it is useful to print the entire state of the
-    # robot:
-    #print "============ Printing robot state"
-    #print robot.get_current_state()
-    #print ""
-    self.group = group
 
   def Gripper_close(self):
     self.Grip.rPR = 105
@@ -344,6 +348,10 @@ class PickPlaceServer:
     self.Target_pose.position.x = goal.obj_centroid.point.x
     self.Target_pose.position.y = goal.obj_centroid.point.y
 
+    self.Goal_pose.position.x = goal.placement.point.x
+    self.Goal_pose.position.y = goal.placement.point.y
+    self.Goal_pose.position.z = goal.placement.point.z
+
     if(self.sim):
       #Associate the centroid with one of the cylindrical objects in Gazebo
       self.get_closest_object(goal.obj_centroid.point)
@@ -353,18 +361,6 @@ class PickPlaceServer:
 
     if(success):
       #Find placement position, move the arm there (random for now)
-      min_x = -0.5
-      max_x = -0.4
-      min_y = -0.3
-      max_y = 0.3
-      import random
-      x = random.uniform(min_x,max_x)
-      y = random.uniform(min_y,max_y)
-      z = 0.2
-
-      self.Goal_pose.position.x = x
-      self.Goal_pose.position.y = y
-      self.Goal_pose.position.z = z
 
       success = self.Cartesian_To_Place()
 

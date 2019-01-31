@@ -2,12 +2,10 @@
 <launch>
   <arg name="sim" default="true" />
 
-  <node pkg="push_vs_grasp" name="pick_place_node" type="pick_place_server.py" output="screen">
-        <param name="sim" value="$(arg sim)" />
+  <node pkg="push_vs_grasp" name="pick_place_node" type="pick_place_server.py" output="screen" args="$(arg sim)">
   </node>
 
   <group unless="$(arg sim)">
-
   <!-- Launch driver script - ensure robot is turned on-->
   <node name="gripper_launcher" pkg="robotiq_2f_gripper_control" type="Robotiq2FGripperRtuNode.py" respawn="false" output="screen" args="/dev/ttyUSB1"></node>
 
