@@ -198,7 +198,10 @@ class PickPlaceServer:
     time.sleep(2)
     
   def Cartesian_To_Pick(self):
+    
     print("Pick")
+
+
     if not self.sim:
         self.Gripper_open()
 
@@ -206,11 +209,11 @@ class PickPlaceServer:
     waypoints = []
     wpose = group.get_current_pose().pose
 
-
     if not self.sim:
       wpose.position.x = self.Target_pose.position.x + 0.02
       waypoints.append(copy.deepcopy(wpose))
     else:  
+      
       wpose.position.x = self.Target_pose.position.x
       waypoints.append(copy.deepcopy(wpose))
 
@@ -229,7 +232,8 @@ class PickPlaceServer:
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
                                        0.05,        # eef_step
-                                       0.0) # jump_threshold
+                                       0.0,         # jump_threshold
+                                       True)
 
     success = False
     # Plan the trajectory
@@ -244,12 +248,14 @@ class PickPlaceServer:
         #Vanish Object in Gazebo
         self.vanish_gazebo_object(self.obj_name)
 
-
-
     wpose.position.z = 0.4
     group.set_pose_target(wpose)
 
     plan = group.go(wait=True)
+
+    print(group.get_current_pose().pose.position.x)
+    print(group.get_current_pose().pose.position.y)
+    print(group.get_current_pose().pose.position.z)
 
     return success
 
@@ -263,13 +269,13 @@ class PickPlaceServer:
     waypoints = []
     wpose = group.get_current_pose().pose
 
-    wpose.position.z = 0.4
+    #wpose.position.y = 0.1
+    #waypoints.append(copy.deepcopy(wpose))
+
+    wpose.position.y = self.Goal_pose.position.y
     waypoints.append(copy.deepcopy(wpose))
 
     wpose.position.x = self.Goal_pose.position.x
-    waypoints.append(copy.deepcopy(wpose))
-
-    wpose.position.y = self.Goal_pose.position.y
     waypoints.append(copy.deepcopy(wpose))
 
     if not self.sim:
@@ -283,7 +289,8 @@ class PickPlaceServer:
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
                                        0.05,        # eef_step
-                                       0.0) # jump_threshold
+                                       0.0,         # jump_threshold
+                                       True)
 
     success = False
     # Plan the trajectory
@@ -318,7 +325,8 @@ class PickPlaceServer:
     waypoints = []
     wpose = group.get_current_pose().pose
 
-    wpose.position.y = self.home_pose.position.y
+    wpose.position.y = 0.1
+    wpose.position.z = 0.4
     waypoints.append(copy.deepcopy(wpose))
 
     wpose.position.x = self.home_pose.position.x
@@ -330,7 +338,8 @@ class PickPlaceServer:
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
                                        0.05,        # eef_step
-                                       0.0) # jump_threshold
+                                       0.0,         # jump_threshold
+                                       True)
 
     success = False
     print(fraction)
@@ -362,7 +371,6 @@ class PickPlaceServer:
       self.get_closest_object(goal.obj_centroid.point)
 
     success = self.Cartesian_To_Pick()
-
 
     if(success):
       #Find placement position, move the arm there (random for now)

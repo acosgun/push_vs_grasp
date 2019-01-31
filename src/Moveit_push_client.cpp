@@ -7,8 +7,8 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
 
-#include <push_vs_grasp/MoveItPushAction.h>
-#include <push_vs_grasp/MoveItPushGoal.h>
+//#include <push_vs_grasp/MoveItPushAction.h>
+//#include <push_vs_grasp/MoveItPushGoal.h>
 
 #include <kinect_segmentation/ScanObjectsAction.h>
 #include <kinect_segmentation/ScanObjectsGoal.h>
@@ -31,7 +31,7 @@ int main (int argc, char **argv)
 
   // create the action client
   // true causes the client to spin its own thread
-  actionlib::SimpleActionClient<push_vs_grasp::MoveItPushAction>   Pushing_Action_client("Pushing");
+ //actionlib::SimpleActionClient<push_vs_grasp::MoveItPushAction>   Pushing_Action_client("Pushing");
   actionlib::SimpleActionClient<kinect_segmentation::ScanObjectsAction> ScanObjects_Action_client("scan_objects");
   actionlib::SimpleActionClient<push_vs_grasp::PlanAction> Plan_Action_client("box2d_planner");
   actionlib::SimpleActionClient<push_vs_grasp::PickPlaceAction> PickPlace_Action_client("pick_place");
@@ -43,8 +43,8 @@ int main (int argc, char **argv)
   ROS_INFO("ScanObjects_Action_client started");
   PickPlace_Action_client.waitForServer(); //will wait for infinite time
   ROS_INFO("PickPlace_Action_client started");
-  Pushing_Action_client.waitForServer(); //will wait for infinite time
-  ROS_INFO("Pushing_Action_client started");
+  //Pushing_Action_client.waitForServer(); //will wait for infinite time
+  //ROS_INFO("Pushing_Action_client started");
   Plan_Action_client.waitForServer(); //will wait for infinite time
   ROS_INFO("Plan_Action_client started");
  

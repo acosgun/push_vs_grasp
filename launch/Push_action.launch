@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-<node pkg="push_vs_grasp" name="push_server" type="moveit_push_server" output="screen"/>
+<!--<node pkg="push_vs_grasp" name="push_server" type="moveit_push_server" output="screen"/>-->
 
 <node pkg="push_vs_grasp" name="push_client" type="moveit_push_client" output="screen"/>
 
