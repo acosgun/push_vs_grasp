@@ -41,9 +41,6 @@ if __name__ == '__main__':
     model_name = "unit_cylinder"
     obj_list = []
 
-    from random import randint
-    num_first_color = randint(0,num_objs)
-
     min_x = -0.4
     max_x = 0.4
     min_y = -0.35
@@ -77,7 +74,8 @@ if __name__ == '__main__':
             #Spawn Object
             item_pose = Pose(Point(x,y,z), Quaternion(0,0,0,0))
 
-            if len(obj_list) < num_first_color:
+            import random
+            if random.random() > 0.5:
                 cur_xml = obj_xml_1
             else:
                 cur_xml = obj_xml_2
