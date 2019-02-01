@@ -47,11 +47,15 @@ int main (int argc, char **argv)
   //ROS_INFO("Pushing_Action_client started");
   Plan_Action_client.waitForServer(); //will wait for infinite time
   ROS_INFO("Plan_Action_client started");
+
+  bool plan_success = false;
  
   while(true)
     {
       //Scan Action
       kinect_segmentation::ScanObjectsGoal ScanObjects_goal;
+      ScanObjects_goal.goal_reached = plan_success;
+
       ScanObjects_Action_client.sendGoal(ScanObjects_goal);
       ScanObjects_Action_client.waitForResult();
       kinect_segmentation::ScanObjectsResult Scan_Result = *ScanObjects_Action_client.getResult();
@@ -71,18 +75,20 @@ int main (int argc, char **argv)
       push_vs_grasp::PlanGoal planner_goal;
       planner_goal.centroids = Scan_Result.centroids;
       planner_goal.radiuses = Scan_Result.radiuses;
+      planner_goal.goal_radiuses = Scan_Result.goal_radiuses;
       planner_goal.colors = Scan_Result.colors;
       planner_goal.red_goal = Scan_Result.red_goal;
       planner_goal.blue_goal = Scan_Result.blue_goal;      
       Plan_Action_client.sendGoal(planner_goal);
       bool plan_result = Plan_Action_client.waitForResult();
       push_vs_grasp::PlanResult Plan_Result = *Plan_Action_client.getResult();
+      plan_success = Plan_Result.goal_reached;
       actionlib::SimpleClientGoalState plan_state = Plan_Action_client.getState();
       ROS_INFO("Plan Action finished: %s",plan_state.toString().c_str());      
 
       if (Plan_Result.goal_reached) {
 	ROS_INFO("Goal Reached..");
-	return 0;
+	continue;
       }
       
       //PickPlace Action
