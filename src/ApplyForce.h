@@ -27,7 +27,13 @@ class ApplyForce : public Test
   std::string gray_str = "gray";
   void* red_ptr; void* blue_ptr; void* red_goal_ptr; void* blue_goal_ptr; void* gray_ptr;
   double pix_coeff = 50.0;
-    
+  b2Body* ee_body;
+  b2Body* robot_base_body;
+  b2Body* red_goal_body;
+  b2Body* blue_goal_body;
+  std::vector<b2Body*> red_bodies;
+  std::vector<b2Body*> blue_bodies;
+  
  public:
  ApplyForce(): red_ptr(&red_str), blue_ptr(&blue_str), red_goal_ptr(&red_goal_str), blue_goal_ptr(&blue_goal_str), gray_ptr(&gray_str) { }
 	void robot_to_box2d_frame(const double x_in, const double y_in, double& x_out, double& y_out) {
@@ -41,17 +47,76 @@ class ApplyForce : public Test
 	  return;
 	}
 
+	b2Vec2 calc_linear_velocity(b2Body* b_from, b2Body* b_to, double out_magnitude) {
+	  b2Vec2 linear_velocity;
+	  double diff_x = b_from->GetPosition().x - b_to->GetPosition().x;
+	  double diff_y = b_from->GetPosition().y - b_to->GetPosition().y;
+	  double mag = sqrt(diff_x*diff_x + diff_y*diff_y);
+	  double coeff = out_magnitude/mag;
+	  linear_velocity.x = diff_x*coeff;
+	  linear_velocity.y = diff_y*coeff;
+	  return linear_velocity;
+	}
+	
+	void simulate_push(b2Body* b, bool goal_oriented) {
+	  //TODO: save world
+	  
+	  //find collision-free position for EE
+	  b2Body* goal_body;
+	  if (get_body_color(b) == "red")
+	    goal_body = red_goal_body;
+	  else if (get_body_color(b) == "blue")
+	    goal_body = blue_goal_body;
+
+	  double magnitude = 1.0;
+	  b2Vec2 linear_velocity = calc_linear_velocity(b, goal_body, magnitude);
+	  set_sensor_status(ee_body, true);
+	  ee_body->SetTransform(b->GetPosition(), b->GetAngle()); //uniform angle sampling
+
+	  ee_body->SetActive(true);
+	  ee_body->SetLinearVelocity(linear_velocity);
+
+	  bool in_collision_1 = coll_check(ee_body, red_bodies);
+	  bool in_collision_2 = coll_check(ee_body, blue_bodies);
+	  //bool in_collision_3 = coll_check(ee_body, robot_base_body);
+
+	  while(true) {
+	    if (!in_collision_1 && !in_collision_2) { //Collision Free!
+	      set_sensor_status(ee_body, false);
+	      break;
+	    }
+	    else {
+	      float32 timeStep = 1.0f / 60.f;
+	      int32 velocityIterations = 10;
+	      int32 positionIterations = 8;
+	      m_world->Step(timeStep, velocityIterations, positionIterations);
+
+	      //draw
+	      
+	      //move the body along the line
+	      //step.
+	    }
+	  }
+	  
+
+	  //double x_init = goal_body->GetPosition().x;
+	  //double y_init = cur_body->GetPosition().y;
+	    
+	  //TODO: execute push
+	  //TODO: load world
+	}
+	
 	void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached)
 	{
 	  //Algo: choose random object, sim pick&place.
 	  unsigned int num_objs = count_objs();
 	  //std::cout<< "# bodies: " << num_objs << std::endl;
 
-	  b2Body* red_goal_body = get_objects(red_goal_str)[0];
-	  b2Body* blue_goal_body = get_objects(blue_goal_str)[0];
+	  red_goal_body = get_objects(red_goal_str)[0];
+	  blue_goal_body = get_objects(blue_goal_str)[0];
 
-	  std::vector<b2Body*> red_bodies = get_objects(red_str);
-	  std::vector<b2Body*> blue_bodies = get_objects(blue_str);
+	  red_bodies = get_objects(red_str);
+	  blue_bodies = get_objects(blue_str);
 
 	  //std::cout << "# red_bodies: " << red_bodies.size() << std::endl;
 	  //std::cout << "# blue_bodies: " << blue_bodies.size() << std::endl;
@@ -67,7 +132,10 @@ class ApplyForce : public Test
 	    goal_reached = true;
 	    return;
 	  }
-	  
+
+	  //try goal-oriented push for each displaced body
+	  simulate_push(displaced_bodies[0], true);
+	  	  
 	  while (true) {
 
 	    //std::cout<<"Attempting to find a placement.. " << std::endl;
@@ -125,7 +193,7 @@ class ApplyForce : public Test
 		placement.point.z = obj_centroid.point.z;
 		goal_reached = false;
 		return;
-	      }	    
+	      }
 	  }
 	}
 
@@ -365,19 +433,37 @@ class ApplyForce : public Test
 	  b2BodyDef myBodyDef;
 	  myBodyDef.type = b2_staticBody;
 	  myBodyDef.position.Set(0.0,0.0);	  
-	  b2Body* robot_base_body = m_world->CreateBody(&myBodyDef);	  
+	  robot_base_body = m_world->CreateBody(&myBodyDef);	  
 	  b2CircleShape circleShape;
 	  circleShape.m_p.Set(0, 0); //position, relative to body position
 	  circleShape.m_radius = 0.05*pix_coeff; //radius	  
 	  b2FixtureDef myFixtureDef;
 	  myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
 	  robot_base_body->CreateFixture(&myFixtureDef); //add a fixture to the body	  
-	  //robot_base_body->SetUserData(gray_ptr);
 	  bodyUserData* robot_base_data = new bodyUserData;
 	  robot_base_data->id = -1;
 	  robot_base_data->str = gray_str;	      
 	  robot_base_body->SetUserData(robot_base_data);
 
+	  //Robot End Effector
+	  double ee_long = 0.3;
+	  double ee_short = 0.1;
+	  b2BodyDef ee_body_def;
+	  ee_body_def.type = b2_dynamicBody;
+	  ee_body_def.position.Set(0.0,0.0);	  
+	  ee_body = m_world->CreateBody(&ee_body_def);
+	  b2PolygonShape ee_shape;
+	  ee_shape.SetAsBox(ee_long*pix_coeff*0.5, ee_short*pix_coeff*0.5);
+	  b2FixtureDef ee_fixture;
+	  ee_fixture.isSensor = true;
+	  ee_fixture.shape = &ee_shape;
+	  ee_body->CreateFixture(&ee_fixture);
+	  bodyUserData* ee_body_data = new bodyUserData;
+	  ee_body_data->id = -1;
+	  ee_body_data->str = gray_str;	      
+	  ee_body->SetUserData(ee_body_data);
+	  ee_body->SetActive(false);
+	  
 	  //Goal Regions
 	  double red_goal_x_box2d; double red_goal_y_box2d; 
 	  robot_to_box2d_frame(red_goal.point.x,red_goal.point.y, red_goal_x_box2d, red_goal_y_box2d);
@@ -392,7 +478,6 @@ class ApplyForce : public Test
 	  goal_fixture_def.isSensor = true;
 	  goal_fixture_def.shape = &goal_body_shape;
 	  goal_body->CreateFixture(&goal_fixture_def);
-	  //goal_body->SetUserData(red_goal_ptr);
 	  bodyUserData* goal_data_1 = new bodyUserData;
 	  goal_data_1->id = -1;
 	  goal_data_1->str = red_goal_str;  
@@ -411,7 +496,6 @@ class ApplyForce : public Test
 	  goal_fixture_def_2.isSensor = true;
 	  goal_fixture_def_2.shape = &goal_body_shape_2;
 	  goal_body_2->CreateFixture(&goal_fixture_def_2);
-	  //goal_body_2->SetUserData(blue_goal_ptr);
 	  bodyUserData* goal_data_2 = new bodyUserData;
 	  goal_data_2->id = -1;
 	  goal_data_2->str = blue_goal_str;
