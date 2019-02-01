@@ -84,7 +84,7 @@ int main (int argc, char **argv)
 	ROS_INFO("Goal Reached..");
 	return 0;
       }
-      
+      ///*
       //PickPlace Action
       push_vs_grasp::PickPlaceGoal pick_place_goal;
       pick_place_goal.obj_centroid = Plan_Result.obj_centroid;
@@ -93,7 +93,7 @@ int main (int argc, char **argv)
       bool pick_place_result = PickPlace_Action_client.waitForResult();
       actionlib::SimpleClientGoalState pick_place_state = PickPlace_Action_client.getState();
       ROS_INFO("PickPlace Action finished: %s",pick_place_state.toString().c_str());      
-      
+      //*/
       /*
       //Push Action
       push_vs_grasp::MoveItPushGoal Push_goal;

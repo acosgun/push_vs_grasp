@@ -59,6 +59,7 @@ class PickPlaceServer:
 
     if self.sim == "true":
       self.sim = True
+    else: self.sim = False
     print self.sim
     scene = moveit_commander.PlanningSceneInterface("base_link")
     time.sleep(2)
@@ -210,7 +211,7 @@ class PickPlaceServer:
     wpose = group.get_current_pose().pose
 
     if not self.sim:
-      wpose.position.x = self.Target_pose.position.x + 0.02
+      wpose.position.x = self.Target_pose.position.x
       waypoints.append(copy.deepcopy(wpose))
     else:  
       
