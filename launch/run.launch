@@ -10,12 +10,12 @@
   <!-- 1. Run roslaunch push_vs_grasp ar_tracking.launch-->
   <!-- 2. Run rosrun tf tf_echo /ar_marker_2 /camera_link-->
   <!-- 3. Input results below -->
-  <arg name="x_cal" value="-0.707"/>
-  <arg name="y_cal" value="-0.189"/>
-  <arg name="z_cal" value="0.742"/>
-  <arg name="r_cal" value="-2.104"/>
-  <arg name="p_cal" value="0.045"/>
-  <arg name="yaw_cal" value="-1.445"/>
+  <arg name="x_cal" value="-0.958333807054"/>
+  <arg name="y_cal" value="-0.0708059003753"/>
+  <arg name="z_cal" value="0.628003007151"/>
+  <arg name="r_cal" value="-2.58631841071"/>
+  <arg name="p_cal" value="-0.00454740808589"/>
+  <arg name="yaw_cal" value="-1.54111263411"/>
 
 
   <!-- Goal Regions -->
@@ -58,9 +58,11 @@
 
     <!--<include file="$(find openni_launch)/launch/openni.launch"/>-->
     <!--<include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>-->   
-    <include file="$(find push_vs_grasp)/launch/openni.launch">
+    <!--<include file="$(find push_vs_grasp)/launch/openni.launch">-->
+    <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch"/>
 
-      <arg name="x_cal" value="$(eval x_cal - 0.9)"/>
+    <include file="$(find push_vs_grasp)/launch/kinect2_frames.launch">
+      <arg name="x_cal" value="$(arg x_cal)"/>
       <arg name="y_cal" value="$(arg y_cal)"/>
       <arg name="z_cal" value="$(arg z_cal)"/>
       <arg name="r_cal" value="$(arg r_cal)"/>
@@ -68,9 +70,11 @@
       <arg name="yaw_cal" value="$(arg yaw_cal)"/>
     </include>
 
+    <!--kinect2_rgb_optical_frame   /kinect2/hd/points-->
+    <!--camera_link   /camera/depth_registered/points-->
     <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"> 
       <arg name="sim" value="$(arg sim)"/>
-      <arg name="point_cloud_topic" value="/camera/depth_registered/points"/>
+      <arg name="point_cloud_topic" value="/kinect2/hd/points"/>
       <arg name="redGoal_x" value ="$(arg redGoal_x)"/>
       <arg name="redGoal_y" value ="$(arg redGoal_y)"/>
       <arg name="redGoal_z" value ="$(arg redGoal_z)"/>

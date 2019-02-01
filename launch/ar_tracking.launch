@@ -8,24 +8,26 @@
 	<arg name="p_cal" value="0.0"/>
 	<arg name="yaw_cal" value="0.0"/>
 
-	<include file="$(find push_vs_grasp)/launch/openni.launch">
+    <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch"/>
+
+    <include file="$(find push_vs_grasp)/launch/kinect2_frames.launch">
       <arg name="x_cal" value="$(arg x_cal)"/>
       <arg name="y_cal" value="$(arg y_cal)"/>
       <arg name="z_cal" value="$(arg z_cal)"/>
       <arg name="r_cal" value="$(arg r_cal)"/>
       <arg name="p_cal" value="$(arg p_cal)"/>
       <arg name="yaw_cal" value="$(arg yaw_cal)"/>
-     </include>
+    </include>
 
 
 
-	<arg name="marker_size" default="5" />
+	<arg name="marker_size" default="17" />
 	<arg name="max_new_marker_error" default="0.25" />
 	<arg name="max_track_error" default="0.05" />
 
-	<arg name="cam_image_topic" default="/camera/depth_registered/points" />
-	<arg name="cam_info_topic" default="/camera/rgb/camera_info" />		
-	<arg name="output_frame" default="/camera_link" />
+	<arg name="cam_image_topic" default="/kinect2/hd/points" />
+	<arg name="cam_info_topic" default="/kinect2/hd/camera_info" />
+	<arg name="output_frame" default="/kinect2_rgb_optical_frame" />
 
     <arg name="debug" default="false" />
     <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
