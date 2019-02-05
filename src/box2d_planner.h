@@ -49,7 +49,6 @@ class Box2DPlanner: public Test
     bool goal_reached;
     test_derived->plan(obj_centroid, placement, goal_reached);
 
-    draw_stuff(true); //defined in Main.h
     
     push_vs_grasp::PlanResult result_;
     result_.obj_centroid = obj_centroid;

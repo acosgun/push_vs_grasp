@@ -180,22 +180,26 @@ static void setup_box2d()
   //glfwTerminate();
 }
 
-static void draw_stuff(bool step)
+static void draw_stuff(bool step, bool draw)
 {
-  glfwGetWindowSize(mainWindow, &g_camera.m_width, &g_camera.m_height);
-  glViewport(0, 0, g_camera.m_width, g_camera.m_height);  
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+  if(draw) {    
+    glfwGetWindowSize(mainWindow, &g_camera.m_width, &g_camera.m_height);
+    glViewport(0, 0, g_camera.m_width, g_camera.m_height);  
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  }
+  
   if (step)
     sSimulate();
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glDisable(GL_DEPTH_TEST);
-  
-  //RenderGLFlush(g_camera.m_width, g_camera.m_height);
-  glfwSwapBuffers(mainWindow);  
-  glfwPollEvents();
 
+  if(draw) {    
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);    
+    //RenderGLFlush(g_camera.m_width, g_camera.m_height);
+    glfwSwapBuffers(mainWindow);  
+    glfwPollEvents();
+    sleep(0.0001);
+  }
   /*
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   sSimulate();
