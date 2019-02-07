@@ -203,48 +203,59 @@ class ApplyForce : public Test
     }
     ee_body->SetActive(false);
   }
-	
+
+
+  double calc_heuristic() {
+    double dist = 0.0;
+    double d = 0.0;
+    for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
+      if (get_body_color(b) == "red")
+	d = get_dist_between_bodies(b, red_goal_body);
+      else if (get_body_color(b) == "blue")
+	d = get_dist_between_bodies(b, blue_goal_body);      
+      dist = dist + d;
+    }
+    return dist;
+  }
+
+  void set_bodies() {
+    red_goal_body = get_objects(red_goal_str)[0];
+    blue_goal_body = get_objects(blue_goal_str)[0];
+    red_bodies = get_objects(red_str);
+    blue_bodies = get_objects(blue_str);
+    //std::cout << "# red_bodies: " << red_bodies.size() << std::endl;
+    //std::cout << "# blue_bodies: " << blue_bodies.size() << std::endl;
+  }
+  
   void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached)
   {
 
     bool enable_draw = true;
-		  
-    //Algo: choose random object, sim pick&place.
-    unsigned int num_objs = count_objs();
-    //std::cout<< "# bodies: " << num_objs << std::endl;
+    double padding_for_gripper = 0.02;
 
-    red_goal_body = get_objects(red_goal_str)[0];
-    blue_goal_body = get_objects(blue_goal_str)[0];
-
-    red_bodies = get_objects(red_str);
-    blue_bodies = get_objects(blue_str);
-
-    //std::cout << "# red_bodies: " << red_bodies.size() << std::endl;
-    //std::cout << "# blue_bodies: " << blue_bodies.size() << std::endl;
-	  
-    std::vector<b2Body*> displaced_bodies;
-    get_displaced_objects(displaced_bodies, red_goal_body, red_bodies);
-    get_displaced_objects(displaced_bodies, blue_goal_body, blue_bodies);
-
+    set_bodies();
+    
+    std::vector<b2Body*> displaced_bodies = get_displaced_objects();
     std::cout << "# displaced_bodies: " << displaced_bodies.size() << std::endl;
 
     if (displaced_bodies.empty()) {
-      //std::cout << " no displaced bodies" <<std::endl;
       goal_reached = true;
       return;
     }
 
     WorldState state = save_world();
-    simulate_push(displaced_bodies[0], true, enable_draw);
-    load_world(state);
-    draw_stuff(false,true);
+   
+    std::vector<double> heuristics;
+    for (unsigned int i = 0; i < displaced_bodies.size(); i++) {
+      simulate_push(displaced_bodies[i], true, enable_draw);
+      double heuristic = calc_heuristic();
+      heuristics.push_back(heuristic);
+      load_world(state);
+    }
     
     while (true) {
 
-      displaced_bodies.clear();
-      get_displaced_objects(displaced_bodies, red_goal_body, red_bodies);
-      get_displaced_objects(displaced_bodies, blue_goal_body, blue_bodies);
-      std::cout << "# displaced_bodies: " << displaced_bodies.size() << std::endl;
+      std::vector<b2Body*> displaced_bodies = get_displaced_objects();
 	  
       //choose a random object
       std::vector<b2Body*>::iterator randIt = displaced_bodies.begin();
@@ -274,7 +285,7 @@ class ApplyForce : public Test
 
       set_sensor_status(cur_body, true);
       double cur_radius = get_obj_radius(cur_body);
-      set_obj_radius(cur_body, cur_radius + 0.02); //padding
+      set_obj_radius(cur_body, cur_radius + padding_for_gripper); //padding
 	    
       cur_body->SetTransform(b2Vec2(x_sampled,y_sampled), angle_init); //uniform angle sampling
 
@@ -397,16 +408,24 @@ class ApplyForce : public Test
       }
     return global_hit;
   }
-	
-  void get_displaced_objects(std::vector<b2Body*> &displaced_objs, b2Body* goal_body, std::vector<b2Body*> bodies) {
-    for (unsigned int i=0; i < bodies.size(); i++)
+
+  std::vector<b2Body*>  get_displaced_objects() {
+    std::vector<b2Body*> displaced_bodies;
+    for (unsigned int i=0; i < red_bodies.size(); i++)
       {
-	if (!obj_goal_satisfied(goal_body, bodies[i])) {
-	  displaced_objs.push_back(bodies[i]);
+	if (!obj_goal_satisfied(red_goal_body, red_bodies[i])) {
+	  displaced_bodies.push_back(red_bodies[i]);
 	}
       }
+    for (unsigned int i=0; i < blue_bodies.size(); i++)
+      {
+	if (!obj_goal_satisfied(blue_goal_body, blue_bodies[i])) {
+	  displaced_bodies.push_back(blue_bodies[i]);
+	}
+      }
+    return displaced_bodies;
   }
-	
+  	
   unsigned int count_objs() {
     unsigned int num_objs = 0;
     for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {

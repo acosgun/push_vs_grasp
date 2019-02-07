@@ -7,9 +7,6 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
 
-//#include <push_vs_grasp/MoveItPushAction.h>
-//#include <push_vs_grasp/MoveItPushGoal.h>
-
 #include <kinect_segmentation/ScanObjectsAction.h>
 #include <kinect_segmentation/ScanObjectsGoal.h>
 
