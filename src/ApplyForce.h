@@ -18,9 +18,13 @@ struct BodyState {
   int id;
 };
 
-
 struct WorldState {
   std::vector<BodyState> bodies;  
+};
+
+struct PushDef {
+  b2Vec2 push_start;
+  b2Vec2 push_end;
 };
 
 class ApplyForce : public Test
@@ -154,9 +158,11 @@ class ApplyForce : public Test
     return mag;
   }
        	
-  void simulate_push(b2Body* b, bool goal_oriented, bool draw) {    
+  PushDef simulate_push(b2Body* b, bool goal_oriented, bool draw) {    
+
+    PushDef push_def;
     double goal_threshold = 0.05;
-	  
+    
     //find collision-free position for EE	  
     b2Body* goal_body;
     if (get_body_color(b) == "red")
@@ -188,7 +194,9 @@ class ApplyForce : public Test
 	draw_stuff(true, false);
       }
     }
-	  
+
+    push_def.push_start = ee_body->GetPosition();
+    
     while (true) {
       double d = get_dist_between_bodies(ee_body, goal_body);
       if (d < goal_threshold*pix_coeff) {
@@ -201,7 +209,9 @@ class ApplyForce : public Test
 	draw_stuff(true, draw);
       }
     }
+    push_def.push_end = ee_body->GetPosition();   
     ee_body->SetActive(false);
+    return push_def;
   }
 
 
@@ -227,10 +237,9 @@ class ApplyForce : public Test
     //std::cout << "# blue_bodies: " << blue_bodies.size() << std::endl;
   }
   
-  void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached)
-  {
-
-    bool enable_draw = true;
+  void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached, int& action_type)
+  {    
+    bool enable_draw = false;
     double padding_for_gripper = 0.02;
 
     set_bodies();
@@ -243,16 +252,50 @@ class ApplyForce : public Test
       return;
     }
 
+    action_type = 1; //1 = push. 2 = pick&place
+    
+    //Algo: greedy search for 1 goal-oriented push per object
     WorldState state = save_world();
-   
     std::vector<double> heuristics;
+    std::vector<PushDef> push_defs;
+    double min_heuristic = -DBL_MAX;
+    PushDef min_push_def;
+    double heuristic = calc_heuristic();
+    std::cout<<"heur INIT: " << heuristic <<std::endl;    
     for (unsigned int i = 0; i < displaced_bodies.size(); i++) {
-      simulate_push(displaced_bodies[i], true, enable_draw);
+      PushDef push_def = simulate_push(displaced_bodies[i], true, enable_draw);
       double heuristic = calc_heuristic();
-      heuristics.push_back(heuristic);
+      std::cout<<"heur[" << i<< "]: " << heuristic <<std::endl;
+      heuristics.push_back(heuristic);      
+      push_defs.push_back(push_def);
       load_world(state);
     }
+    auto smallest = std::min_element(heuristics.begin(), heuristics.end());	
+    int min_index = std::distance(heuristics.begin(), smallest);	
+    min_push_def = push_defs[min_index];
+
+          
+    if (action_type == 1) {
+
+      double push_start_x = 0.0, push_start_y = 0.0, push_end_x = 0.0, push_end_y = 0.0;
+      box2d_to_robot_frame(min_push_def.push_start.x, min_push_def.push_start.y, push_start_x , push_start_y);
+      box2d_to_robot_frame(min_push_def.push_end.x, min_push_def.push_end.y, push_end_x , push_end_y);      
+      obj_centroid.point.x = push_start_x;
+      obj_centroid.point.y = push_start_y;
+      placement.point.x = push_end_x;
+      placement.point.y = push_end_y;
+      goal_reached = false;
+      return;
+    }
+    else if (action_type == 2) {
+      
+    }
+    else {
+      ROS_ERROR("Error: Action type undefined");
+      exit(0);
+    }
     
+    //Algo: select an object for pick&place
     while (true) {
 
       std::vector<b2Body*> displaced_bodies = get_displaced_objects();

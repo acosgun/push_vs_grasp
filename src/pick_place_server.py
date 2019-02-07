@@ -200,8 +200,6 @@ class PickPlaceServer:
   def Cartesian_To_Pick(self):
     
     print("Pick")
-
-
     if not self.sim:
         self.Gripper_open()
 
@@ -234,7 +232,6 @@ class PickPlaceServer:
                                        0.05,        # eef_step
                                        0.0,         # jump_threshold
                                        True)
-
     success = False
     # Plan the trajectory
     if (fraction == 1):
@@ -261,9 +258,9 @@ class PickPlaceServer:
 
   def Cartesian_To_Place(self):
     print("Place")
-    print(self.Goal_pose.position.x)
-    print(self.Goal_pose.position.y)
-    print(self.Goal_pose.position.z)
+    #print(self.Goal_pose.position.x)
+    #print(self.Goal_pose.position.y)
+    #print(self.Goal_pose.position.z)
 
     group = self.group
     waypoints = []
@@ -316,9 +313,9 @@ class PickPlaceServer:
 
 
   def go_home(self):
-    print("Home")
-    print("x", self.home_pose.position.x)
-    print("y", self.home_pose.position.y)
+    print("go_home")
+    #print("x", self.home_pose.position.x)
+    #print("y", self.home_pose.position.y)
 
     group = self.group
    
@@ -342,23 +339,25 @@ class PickPlaceServer:
                                        True)
 
     success = False
-    print(fraction)
+    #print(fraction)
 
     # Plan the trajectory
     if (fraction == 1):
       success = True
-      print("Home")
+      #print("Home")
 
       group.execute(plan)
       time.sleep(1)
 
     return success
 
+  def go_to_pre_push_pose(self):
+    print('go_to_pre_push_pose')
+    
     
   def executeCB(self, goal):
     rospy.loginfo("executeCB: PickPlaceAction")
-
-    ## Send Arm over the Object with some z offset
+         
     self.Target_pose.position.x = goal.obj_centroid.point.x
     self.Target_pose.position.y = goal.obj_centroid.point.y
 
@@ -366,6 +365,15 @@ class PickPlaceServer:
     self.Goal_pose.position.y = goal.placement.point.y
     self.Goal_pose.position.z = goal.placement.point.z
 
+
+    if goal.action_type == 1: #Push Action
+      print("Push Action TBD");
+      self.go_to_pre_push_pose()
+      #self.push()
+      self.go_home()
+      self.server.set_succeeded()
+      return
+    
     if(self.sim):
       #Associate the centroid with one of the cylindrical objects in Gazebo
       self.get_closest_object(goal.obj_centroid.point)
@@ -374,10 +382,7 @@ class PickPlaceServer:
 
     if(success):
       #Find placement position, move the arm there (random for now)
-
-      success = self.Cartesian_To_Place()
-
-      
+      success = self.Cartesian_To_Place()      
       success = self.go_home()
     
     self.server.set_succeeded()
