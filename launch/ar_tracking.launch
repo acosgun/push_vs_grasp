@@ -21,8 +21,8 @@
 
 
 
-	<arg name="marker_size" default="17" />
-	<arg name="max_new_marker_error" default="0.25" />
+	<arg name="marker_size" default="20" />
+	<arg name="max_new_marker_error" default="0.05" />
 	<arg name="max_track_error" default="0.05" />
 
 	<arg name="cam_image_topic" default="/kinect2/hd/points" />

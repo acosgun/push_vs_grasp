@@ -35,9 +35,9 @@ int main (int argc, char **argv)
   actionlib::SimpleActionClient<kinect_segmentation::ScanObjectsAction> ScanObjects_Action_client("scan_objects");
   actionlib::SimpleActionClient<push_vs_grasp::PlanAction> Plan_Action_client("box2d_planner");
   actionlib::SimpleActionClient<push_vs_grasp::PickPlaceAction> PickPlace_Action_client("pick_place");
-  
+
   boost::thread spin_thread(&spinThread);
-  
+
   ROS_INFO("Waiting for action Client to startup.");
   ScanObjects_Action_client.waitForServer(); //will wait for infinite time
   ROS_INFO("ScanObjects_Action_client started");
@@ -49,7 +49,7 @@ int main (int argc, char **argv)
   ROS_INFO("Plan_Action_client started");
 
   bool plan_success = false;
- 
+
   while(true)
     {
       //Scan Action
@@ -70,7 +70,7 @@ int main (int argc, char **argv)
         return 0;
       }
   }
-      
+
       //Plan Action
       push_vs_grasp::PlanGoal planner_goal;
       planner_goal.centroids = Scan_Result.centroids;
@@ -78,19 +78,19 @@ int main (int argc, char **argv)
       planner_goal.goal_radiuses = Scan_Result.goal_radiuses;
       planner_goal.colors = Scan_Result.colors;
       planner_goal.red_goal = Scan_Result.red_goal;
-      planner_goal.blue_goal = Scan_Result.blue_goal;      
+      planner_goal.blue_goal = Scan_Result.blue_goal;
       Plan_Action_client.sendGoal(planner_goal);
       bool plan_result = Plan_Action_client.waitForResult();
       push_vs_grasp::PlanResult Plan_Result = *Plan_Action_client.getResult();
       plan_success = Plan_Result.goal_reached;
       actionlib::SimpleClientGoalState plan_state = Plan_Action_client.getState();
-      ROS_INFO("Plan Action finished: %s",plan_state.toString().c_str());      
+      ROS_INFO("Plan Action finished: %s",plan_state.toString().c_str());
 
       if (Plan_Result.goal_reached) {
   ROS_INFO("Goal Reached..");
   continue;
       }
-      
+
       //PickPlace Action
       push_vs_grasp::PickPlaceGoal pick_place_goal;
       pick_place_goal.obj_centroid = Plan_Result.obj_centroid;
@@ -98,13 +98,13 @@ int main (int argc, char **argv)
       PickPlace_Action_client.sendGoal(pick_place_goal);
       bool pick_place_result = PickPlace_Action_client.waitForResult();
       actionlib::SimpleClientGoalState pick_place_state = PickPlace_Action_client.getState();
-      ROS_INFO("PickPlace Action finished: %s",pick_place_state.toString().c_str());      
-      
+      ROS_INFO("PickPlace Action finished: %s",pick_place_state.toString().c_str());
+
       /*
       //Push Action
       push_vs_grasp::MoveItPushGoal Push_goal;
       Push_goal.all_centroids = Scan_Result.centroids;
-      std::vector<geometry_msgs::PointStamped> Centroids = Scan_Result.centroids; 
+      std::vector<geometry_msgs::PointStamped> Centroids = Scan_Result.centroids;
       geometry_msgs::PointStamped goalXYZ;
       int Centroid_indx = rand() % (static_cast<int>(Centroids.size()) + 1); //Randomly choose a point from the array
       goalXYZ.point.x = Centroids[Centroid_indx].point.x;
@@ -114,9 +114,9 @@ int main (int argc, char **argv)
       Pushing_Action_client.sendGoal(Push_goal);
       Pushing_Action_client.waitForResult();
       actionlib::SimpleClientGoalState push_state = Pushing_Action_client.getState();
-      ROS_INFO("Push Action finished: %s",plan_state.toString().c_str());      
+      ROS_INFO("Push Action finished: %s",plan_state.toString().c_str());
       */
-      //sleep(0.1);    
+      //sleep(0.1);
     }
 //*/
   //ros::shutdown();

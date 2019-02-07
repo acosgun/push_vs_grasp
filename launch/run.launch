@@ -10,12 +10,12 @@
   <!-- 1. Run roslaunch push_vs_grasp ar_tracking.launch-->
   <!-- 2. Run rosrun tf tf_echo /ar_marker_2 /camera_link-->
   <!-- 3. Input results below -->
-  <arg name="x_cal" value="-0.958333807054"/>
-  <arg name="y_cal" value="-0.0708059003753"/>
-  <arg name="z_cal" value="0.628003007151"/>
-  <arg name="r_cal" value="-2.58631841071"/>
-  <arg name="p_cal" value="-0.00454740808589"/>
-  <arg name="yaw_cal" value="-1.54111263411"/>
+  <arg name="x_cal" value="-1.25452380015"/>
+  <arg name="y_cal" value="-0.0409562897187"/>
+  <arg name="z_cal" value="0.536076342267"/>
+  <arg name="r_cal" value="-2.25628140397"/>
+  <arg name="p_cal" value="0.00520005069222"/>
+  <arg name="yaw_cal" value="-1.58099374934"/>
 
 
   <!-- Goal Regions -->
@@ -31,13 +31,14 @@
 
 
   <!-- simulation -->
-  <group if="$(arg sim)">    
-    <include file="$(find push_vs_grasp)/launch/gazebo.launch"/>    
+  <group if="$(arg sim)">
+    <include file="$(find push_vs_grasp)/launch/gazebo.launch"/>
     <include file="$(find push_vs_grasp)/launch/spawn_table.launch"/>
     <include file="$(find push_vs_grasp)/launch/spawn_kinect.launch"/>
     <include file="$(find push_vs_grasp)/launch/ur5.launch"/>
     <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>
-    <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"> 
+
+    <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch">
       <arg name="sim" value="$(arg sim)"/>
       <arg name="point_cloud_topic" value="/camera/depth/points"/>
       <arg name="redGoal_x" value ="$(arg redGoal_x)"/>
@@ -46,7 +47,8 @@
       <arg name="blueGoal_x" value ="$(arg blueGoal_x)"/>
       <arg name="blueGoal_y" value ="$(arg blueGoal_y)"/>
       <arg name="blueGoal_z" value ="$(arg blueGoal_z)"/>
-    </include>
+  </include>
+
   </group>
 
   <!-- real Robot -->
@@ -57,7 +59,7 @@
     </include>
 
     <!--<include file="$(find openni_launch)/launch/openni.launch"/>-->
-    <!--<include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>-->   
+    <!--<include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"/>-->
     <!--<include file="$(find push_vs_grasp)/launch/openni.launch">-->
     <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch"/>
 
@@ -72,7 +74,7 @@
 
     <!--kinect2_rgb_optical_frame   /kinect2/hd/points-->
     <!--camera_link   /camera/depth_registered/points-->
-    <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch"> 
+    <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch">
       <arg name="sim" value="$(arg sim)"/>
       <arg name="point_cloud_topic" value="/kinect2/hd/points"/>
       <arg name="redGoal_x" value ="$(arg redGoal_x)"/>
@@ -85,14 +87,22 @@
 
   </group>
 
-  <!-- actionlib servers -->
-  <!-- <include file="$(find push_vs_grasp)/launch/pick_place.launch">
-	<arg name="sim" value="$(arg sim)"/>
-  </include>-->
 
-  <include file="$(find push_vs_grasp)/launch/Push_action.launch"/>
+  <group unless="$(arg sim)">
+  <!-- Launch driver script - ensure robot is turned on-->
+  <node name="gripper_launcher" pkg="robotiq_2f_gripper_control" type="Robotiq2FGripperRtuNode.py" respawn="false" output="screen" args="/dev/ttyUSB1"></node>
+
+  </group>
+
+  <!-- actionlib servers -->
+  <include file="$(find push_vs_grasp)/launch/pick_place.launch">
+	<arg name="sim" value="$(arg sim)"/>
+</include>
+
+
+  <!-- <include file="$(find push_vs_grasp)/launch/Push_action.launch"/> -->
   <include file="$(find push_vs_grasp)/launch/box2d_planner.launch"/>
-  
+
   <!-- moveit -->
   <include file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch">
       <arg name="sim" default="$(arg sim)"/>
@@ -102,5 +112,5 @@
   <include file="$(find push_vs_grasp)/launch/rviz.launch">
     <arg name="config" default="true"/>
   </include>
-  
+
 </launch>

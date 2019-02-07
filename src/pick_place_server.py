@@ -31,7 +31,7 @@ class PickPlaceServer:
     #Gazebo Simluation
 
     self.sim = rospy.myargv(argv=sys.argv)[1]
-    
+
     self.init_moveit()
 
     self.init_gazebo()
@@ -50,7 +50,7 @@ class PickPlaceServer:
     self.init_home_pose()
 
     self.go_home()
-    self.server.start()    
+    self.server.start()
     rospy.loginfo("Pick Place Server ON")
 
   def init_moveit(self):
@@ -126,14 +126,14 @@ class PickPlaceServer:
     import sys
     min_dist = sys.float_info.max
     final_name = 'n/a'
-    final_response = 'n/a'  
-    for i in range(max_num_objs):          
+    final_response = 'n/a'
+    for i in range(max_num_objs):
       cur_obj_name = model_name + str(i)
       response = self.get_model_state(cur_obj_name,  "robot::base_link")
       if response.success:
         import numpy as np
         closest_obj_pos = np.array([closest_obj.x, closest_obj.y, closest_obj.z])
-        response_obj_pos =np.array([response.pose.position.x, response.pose.position.y, response.pose.position.z])       
+        response_obj_pos =np.array([response.pose.position.x, response.pose.position.y, response.pose.position.z])
         dist = np.linalg.norm(closest_obj_pos - response_obj_pos)
         if dist < min_dist:
           min_dist = dist
@@ -197,9 +197,9 @@ class PickPlaceServer:
     self.Grip.rPR = 0
     self.pub.publish(self.Grip)
     time.sleep(2)
-    
+
   def Cartesian_To_Pick(self):
-    
+
     print("Pick")
 
 
@@ -213,8 +213,8 @@ class PickPlaceServer:
     if not self.sim:
       wpose.position.x = self.Target_pose.position.x
       waypoints.append(copy.deepcopy(wpose))
-    else:  
-      
+    else:
+
       wpose.position.x = self.Target_pose.position.x
       waypoints.append(copy.deepcopy(wpose))
 
@@ -229,7 +229,7 @@ class PickPlaceServer:
       wpose.position.z = gripperOffset_sim
       waypoints.append(copy.deepcopy(wpose))
 
-    
+
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
                                        0.05,        # eef_step
@@ -285,7 +285,7 @@ class PickPlaceServer:
     else:
       wpose.position.z = gripperOffset_sim
       waypoints.append(copy.deepcopy(wpose))
-    
+
 
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
@@ -322,7 +322,7 @@ class PickPlaceServer:
     print("y", self.home_pose.position.y)
 
     group = self.group
-   
+
     waypoints = []
     wpose = group.get_current_pose().pose
 
@@ -355,7 +355,7 @@ class PickPlaceServer:
 
     return success
 
-    
+
   def executeCB(self, goal):
     rospy.loginfo("executeCB: PickPlaceAction")
 
@@ -378,11 +378,11 @@ class PickPlaceServer:
 
       success = self.Cartesian_To_Place()
 
-      
+
       success = self.go_home()
-    
+
     self.server.set_succeeded()
-    
+
 if __name__ == '__main__':
   rospy.init_node('pick_place_server')
 
