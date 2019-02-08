@@ -17,6 +17,7 @@ class ApplyForce : public Test
  private:
   std::vector<geometry_msgs::PointStamped> centroids;
   std::vector<double> radiuses;
+  std::vector<double> goal_radiuses;
   std::vector<std::string> colors;
   geometry_msgs::PointStamped red_goal;
   geometry_msgs::PointStamped blue_goal;
@@ -274,11 +275,12 @@ class ApplyForce : public Test
 	    }
 	}
 	
-	void setup_objects(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses, std::vector<std::string> colors, geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal)
+	void setup_objects(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses, std::vector<std::string> colors, geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses)
 	{
-	  setup_table(red_goal, blue_goal);
+	  setup_table(red_goal, blue_goal, goal_radiuses);
 	  this->centroids = centroids;
 	  this->radiuses = radiuses;
+	  this->goal_radiuses = goal_radiuses;
 	  this->colors = colors;
 	  this->red_goal = red_goal;
 	  this->blue_goal = blue_goal;
@@ -321,7 +323,7 @@ class ApplyForce : public Test
 	  }
 	  
 	}
-	void setup_table(geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal)
+	void setup_table(geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses)
 	{
 	  m_world->SetGravity(b2Vec2(0.0f, 0.0f));
 	  
@@ -387,7 +389,7 @@ class ApplyForce : public Test
 	  b2Body* goal_body = m_world->CreateBody(&goal_body_def);  	  
 	  b2CircleShape goal_body_shape;
 	  goal_body_shape.m_p.Set(0, 0);
-	  goal_body_shape.m_radius = 0.18*pix_coeff;
+	  goal_body_shape.m_radius = goal_radiuses[0]*pix_coeff; //0.18*pix_coeff;
 	  b2FixtureDef goal_fixture_def;
 	  goal_fixture_def.isSensor = true;
 	  goal_fixture_def.shape = &goal_body_shape;
@@ -406,7 +408,7 @@ class ApplyForce : public Test
 	  b2Body* goal_body_2 = m_world->CreateBody(&goal_body_def_2);  	  
 	  b2CircleShape goal_body_shape_2;
 	  goal_body_shape_2.m_p.Set(0, 0);
-	  goal_body_shape_2.m_radius = 0.18*pix_coeff;
+	  goal_body_shape_2.m_radius = goal_radiuses[1]*pix_coeff;//0.18*pix_coeff;
 	  b2FixtureDef goal_fixture_def_2;
 	  goal_fixture_def_2.isSensor = true;
 	  goal_fixture_def_2.shape = &goal_body_shape_2;

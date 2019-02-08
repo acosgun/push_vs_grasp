@@ -36,14 +36,14 @@ class Box2DPlanner: public Test
   
   void executeCB (const actionlib::SimpleActionServer<push_vs_grasp::PlanAction>::GoalConstPtr& goal)
   {    
-    if (virgin == true) {	
-	setup_box2d(); //defined in Main.h
-	virgin = false;
+    if (virgin == true) { 
+  setup_box2d(); //defined in Main.h
+  virgin = false;
       }
  
     ApplyForce *test_derived = static_cast<ApplyForce*>(test);
     test_derived->destroy_all_objects();
-    test_derived->setup_objects(goal->centroids, goal->radiuses, goal->colors, goal->red_goal, goal->blue_goal);
+    test_derived->setup_objects(goal->centroids, goal->radiuses, goal->colors, goal->red_goal, goal->blue_goal, goal->goal_radiuses);
     geometry_msgs::PointStamped obj_centroid;
     geometry_msgs::PointStamped placement;
     bool goal_reached;

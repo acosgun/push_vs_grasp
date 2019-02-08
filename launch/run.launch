@@ -19,15 +19,14 @@
 
 
   <!-- Goal Regions -->
-  <!-- Run openni.launch -> ar_tracking.launch -> rostopic echo /ar_pose_marker -->
-  <!-- ID 0 = Red; ID 1 = Blue; ID 2 = Calibration -->
-  <arg name="redGoal_x" value ="-0.193161775668"/>
-  <arg name="redGoal_y" value ="-0.0121647480609"/>
-  <arg name="redGoal_z" value ="1.04787659498"/>
-
-  <arg name="blueGoal_x" value ="0.218119555785"/>
-  <arg name="blueGoal_y" value ="0.0167020967658"/>
-  <arg name="blueGoal_z" value ="1.02159262881"/>
+  <!-- Goal Region Limits -->
+  <arg name="x_min" value="-0.2"/>
+  <arg name="x_max" value="0.2"/>
+  <arg name="y_min" value="-0.3"/>
+  <arg name="y_max" value="-0.55"/>
+  <!-- Goal Region Radiuses -->
+  <arg name="red_radius" value="0.10"/>
+  <arg name="blue_radius" value="0.10"/>
 
 
   <!-- simulation -->
@@ -41,12 +40,12 @@
     <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch">
       <arg name="sim" value="$(arg sim)"/>
       <arg name="point_cloud_topic" value="/camera/depth/points"/>
-      <arg name="redGoal_x" value ="$(arg redGoal_x)"/>
-      <arg name="redGoal_y" value ="$(arg redGoal_y)"/>
-      <arg name="redGoal_z" value ="$(arg redGoal_z)"/>
-      <arg name="blueGoal_x" value ="$(arg blueGoal_x)"/>
-      <arg name="blueGoal_y" value ="$(arg blueGoal_y)"/>
-      <arg name="blueGoal_z" value ="$(arg blueGoal_z)"/>
+      <arg name="x_min" value ="$(arg x_min)"/>
+      <arg name="x_max" value ="$(arg x_max)"/>
+      <arg name="y_min" value ="$(arg y_min)"/>
+      <arg name="y_max" value ="$(arg y_max)"/>
+      <arg name="red_radius" value ="$(arg red_radius)"/>
+      <arg name="blue_radius" value ="$(arg blue_radius)"/>
   </include>
 
   </group>
@@ -77,12 +76,12 @@
     <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch">
       <arg name="sim" value="$(arg sim)"/>
       <arg name="point_cloud_topic" value="/kinect2/hd/points"/>
-      <arg name="redGoal_x" value ="$(arg redGoal_x)"/>
-      <arg name="redGoal_y" value ="$(arg redGoal_y)"/>
-      <arg name="redGoal_z" value ="$(arg redGoal_z)"/>
-      <arg name="blueGoal_x" value ="$(arg blueGoal_x)"/>
-      <arg name="blueGoal_y" value ="$(arg blueGoal_y)"/>
-      <arg name="blueGoal_z" value ="$(arg blueGoal_z)"/>
+      <arg name="x_min" value ="$(arg x_min)"/>
+      <arg name="x_max" value ="$(arg x_max)"/>
+      <arg name="y_min" value ="$(arg y_min)"/>
+      <arg name="y_max" value ="$(arg y_max)"/>
+      <arg name="red_radius" value ="$(arg red_radius)"/>
+      <arg name="blue_radius" value ="$(arg blue_radius)"/>
     </include>
 
   </group>
