@@ -15,11 +15,13 @@ from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 from tf.msg import tfMessage
+from geometry_msgs.msg import Quaternion
 from tf.transformations import quaternion_from_euler
 from robotiq_2f_gripper_control.msg import Robotiq2FGripper_robot_output
 from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import *
 import time
+
 #CUSTOM
 from push_vs_grasp.msg import PickPlaceAction
 
@@ -50,7 +52,7 @@ class PickPlaceServer:
     self.init_home_pose()
 
     self.go_home()
-    self.server.start()    
+    self.server.start()
     rospy.loginfo("Pick Place Server ON")
 
   def init_moveit(self):
@@ -326,15 +328,15 @@ class PickPlaceServer:
     wpose.position.z = 0.4
     waypoints.append(copy.deepcopy(wpose))
 
-    wpose.position.x = self.home_pose.position.x
-    waypoints.append(copy.deepcopy(wpose))
+    #wpose.position.x = self.home_pose.position.x
+    #waypoints.append(copy.deepcopy(wpose))
 
     wpose = self.home_pose
     waypoints.append(copy.deepcopy(wpose))
 
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
-                                       0.05,        # eef_step
+                                       0.01,        # eef_step
                                        0.0,         # jump_threshold
                                        True)
 
@@ -347,29 +349,102 @@ class PickPlaceServer:
       #print("Home")
 
       group.execute(plan)
-      time.sleep(1)
+      #time.sleep(1)
 
     return success
 
-  def go_to_pre_push_pose(self):
-    print('go_to_pre_push_pose')
+  def execute_push(self, pos, quat):
+    print('execute_push')
+    group = self.group
+    waypoints = []
+
+    wpose = group.get_current_pose().pose
+    wpose.position.x = pos.x
+    wpose.position.y = pos.y
+    wpose.orientation.x = quat[0]
+    wpose.orientation.y = quat[1]
+    wpose.orientation.z = quat[2]
+    wpose.orientation.w = quat[3]
+    waypoints.append(copy.deepcopy(wpose))
     
+    (plan, fraction) = group.compute_cartesian_path(
+                                       waypoints,   # waypoints to follow
+                                       0.01,        # eef_step
+                                       0.0,         # jump_threshold
+                                       True)
+    
+    print(fraction)
+    success = False
+    if (fraction == 1):
+      success = True
+      group.execute(plan)
+
+    return success    
+  
+  def go_to_pre_push_pose(self, pos, quat):
+    print('go_to_pre_push_pose')
+    group = self.group
+    waypoints = []
+
+    wpose = group.get_current_pose().pose
+    #waypoints.append(copy.deepcopy(wpose))
+    
+    #wpose = geometry_msgs.msg.Pose()
+    #wpose.position = pos
+    wpose.position.z = 0.4
+    wpose.orientation.x = quat[0]
+    wpose.orientation.y = quat[1]
+    wpose.orientation.z = quat[2]
+    wpose.orientation.w = quat[3]
+    waypoints.append(copy.deepcopy(wpose))
+
+    wpose.position.z = 0.1
+    waypoints.append(copy.deepcopy(wpose))
+    
+    (plan, fraction) = group.compute_cartesian_path(
+                                       waypoints,   # waypoints to follow
+                                       0.01,        # eef_step
+                                       0.0,         # jump_threshold
+                                       True)
+    print(fraction)
+    success = False
+    if (fraction == 1):
+      success = True
+      group.execute(plan)
+      #time.sleep(1)
+
+    return success    
+
+  def compute_push_orientation(self, p1, p2):    
+    x_diff = p2.x - p1.x
+    y_diff = p2.y - p1.y
+    from math import atan2
+    angle = atan2(y_diff,x_diff)
+    print "angle: " + str(angle)
+    #GradM = Ydiff/Xdiff
+    #Yoffset = p2.y - GradM * p2.x;
+    #import numpy as np 
+    #Zangle = - np.tanh(1/GradM);
+    quat = quaternion_from_euler(0, 0, angle)
+    #quat = quaternion_from_euler(pi/2, 0, angle)
+    return quat
     
   def executeCB(self, goal):
     rospy.loginfo("executeCB: PickPlaceAction")
          
     self.Target_pose.position.x = goal.obj_centroid.point.x
     self.Target_pose.position.y = goal.obj_centroid.point.y
+    self.Target_pose.position.z = goal.obj_centroid.point.z
 
     self.Goal_pose.position.x = goal.placement.point.x
     self.Goal_pose.position.y = goal.placement.point.y
     self.Goal_pose.position.z = goal.placement.point.z
 
-
     if goal.action_type == 1: #Push Action
       print("Push Action TBD");
-      self.go_to_pre_push_pose()
-      #self.push()
+      quat = self.compute_push_orientation(goal.obj_centroid.point, goal.placement.point)
+      self.go_to_pre_push_pose(goal.obj_centroid.point, quat)
+      self.execute_push(goal.placement.point, quat)
       self.go_home()
       self.server.set_succeeded()
       return

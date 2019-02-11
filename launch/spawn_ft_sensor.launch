@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-
-  <param name="ft_sensor_description" command="$(find xacro)/xacro --inorder '$(find robotiq_2f_c2_gripper_visualization)/urdf/robotiq_c2_model.xacro'" />
-  <node name="spawn_ft_sensor" pkg="gazebo_ros" type="spawn_model" args="-urdf -param ft_sensor_description -model ft_sensor" respawn="false" output="screen" />
-
-</launch>

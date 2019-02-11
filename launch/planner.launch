@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-	<node name="moveit_test" pkg="push_vs_grasp" type="moveit_test" args="spawn arm_controller" respawn="false" output="screen">
-	</node>
-</launch>
