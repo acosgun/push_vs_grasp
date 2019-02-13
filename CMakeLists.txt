@@ -84,7 +84,6 @@ add_action_files(
   action
   FILES
   PickPlace.action
-  MoveItPush.action
   Plan.action
 )
 
@@ -174,7 +173,6 @@ source_group(Framework FILES ${Testbed_Framework_SRCS2})
 ## The recommended prefix ensures that target names across packages don't collide
 
 add_executable(task_planner src/task_planner.cpp)
-add_executable(push_server src/push_server.cpp)
 add_executable(box2d_planner_server src/box2d_planner_server.cpp ${Testbed_Framework_SRCS2})
 
 
@@ -197,17 +195,10 @@ target_link_libraries(box2d_planner_server
    ${ADDITIONAL_LIBRARIES}
    ${OPENGL_LIBRARIES}  
 )
-target_link_libraries(push_server
-   ${catkin_LIBRARIES}
- )
 target_link_libraries(task_planner
    ${catkin_LIBRARIES}
  )
 
-add_dependencies(
-  push_server
-  ${push_vs_grasp_EXPORTED_TARGETS}
-)
 
 add_dependencies(
   task_planner
