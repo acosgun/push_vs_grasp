@@ -24,6 +24,7 @@
   <arg name="x_max" value="0.2"/>
   <arg name="y_min" value="-0.3"/>
   <arg name="y_max" value="-0.55"/>
+
   <!-- Goal Region Radiuses -->
   <arg name="red_radius" value="0.10"/>
   <arg name="blue_radius" value="0.10"/>
@@ -95,12 +96,8 @@
 
   <!-- actionlib servers -->
   <include file="$(find push_vs_grasp)/launch/pick_place.launch">
-	<arg name="sim" value="$(arg sim)"/>
-</include>
-
-
-  <!-- <include file="$(find push_vs_grasp)/launch/Push_action.launch"/> -->
-  <include file="$(find push_vs_grasp)/launch/box2d_planner.launch"/>
+	<arg name="sim" value="$(arg sim)"/>	
+  </include>
 
   <!-- moveit -->
   <include file="$(find ur5_moveit_config)/launch/ur5_moveit_planning_execution.launch">

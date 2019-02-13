@@ -138,7 +138,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include Box2D ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} 	${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} ${Box2D_SOURCE_DIR} ${Testbed_Framework_SRCS} ${Testbed_Tests_SRCS})
+include_directories(include Box2D ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} 	${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} ${Box2D_SOURCE_DIR} ${Testbed_Framework_SRCS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -162,20 +162,20 @@ set(Testbed_Framework_SRCS2
 	Box2D/Testbed/Framework/Test.cpp
 	Box2D/Testbed/Framework/Main.h
 )
-set(Testbed_Tests_SRCS2
-	src/box2d_planner.h
-)
+#set(Testbed_Tests_SRCS2
+#	src/box2d_planner.h
+#)
 source_group(Framework FILES ${Testbed_Framework_SRCS2})
-source_group(Tests FILES ${Testbed_Tests_SRCS2})
+#source_group(Tests FILES ${Testbed_Tests_SRCS2})
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 
-add_executable(moveit_push_client src/Moveit_push_client.cpp)
-add_executable(moveit_push_server src/moveit_push_server.cpp)
-add_executable(box2d_planner_server src/box2d_planner_server.cpp ${Testbed_Framework_SRCS2} ${Testbed_Tests_SRCS2})
+add_executable(task_planner src/task_planner.cpp)
+add_executable(push_server src/push_server.cpp)
+add_executable(box2d_planner_server src/box2d_planner_server.cpp ${Testbed_Framework_SRCS2})
 
 
 ## Rename C++ executable without prefix
@@ -197,20 +197,20 @@ target_link_libraries(box2d_planner_server
    ${ADDITIONAL_LIBRARIES}
    ${OPENGL_LIBRARIES}  
 )
-target_link_libraries(moveit_push_server
+target_link_libraries(push_server
    ${catkin_LIBRARIES}
  )
-target_link_libraries(moveit_push_client
+target_link_libraries(task_planner
    ${catkin_LIBRARIES}
  )
 
 add_dependencies(
-  moveit_push_server
+  push_server
   ${push_vs_grasp_EXPORTED_TARGETS}
 )
 
 add_dependencies(
-  moveit_push_client
+  task_planner
   ${push_vs_grasp_EXPORTED_TARGETS}
 )
 

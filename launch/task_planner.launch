@@ -1,4 +1,4 @@
 <?xml version="1.0"?>
 <launch>
-<node pkg="push_vs_grasp" name="task_planner_node" type="task_planner.py" output="screen"/>
+<node pkg="push_vs_grasp" name="task_planner" type="task_planner" output="screen"/>
 </launch>
