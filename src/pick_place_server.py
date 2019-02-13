@@ -33,6 +33,7 @@ class PickPlaceServer:
     #Gazebo Simluation
 
     self.sim = rospy.myargv(argv=sys.argv)[1]
+  
     
     self.init_moveit()
 
@@ -61,13 +62,16 @@ class PickPlaceServer:
 
     if self.sim == "true":
       self.sim = True
-    print self.sim
+      self.gripper_offset = gripperOffset_sim
+    else:
+      self.gripper_offset = gripperOffset
+      
     scene = moveit_commander.PlanningSceneInterface("base_link")
     time.sleep(2)
     # Create table obstacle
     p = PoseStamped()
     p.header.frame_id = robot.get_planning_frame()
-    print p.header.frame_id
+    #print p.header.frame_id
     p.pose.position.x = -0.5
     p.pose.position.y = 0
     p.pose.position.z = -0.03
@@ -211,22 +215,15 @@ class PickPlaceServer:
 
     if not self.sim:
       wpose.position.x = self.Target_pose.position.x + 0.02
-      waypoints.append(copy.deepcopy(wpose))
-    else:  
-      
+    else:      
       wpose.position.x = self.Target_pose.position.x
-      waypoints.append(copy.deepcopy(wpose))
 
     wpose.position.y = self.Target_pose.position.y
+    wpose.position.z = self.gripper_offset + 0.07
     waypoints.append(copy.deepcopy(wpose))
 
-
-    if not self.sim:
-      wpose.position.z = gripperOffset
-      waypoints.append(copy.deepcopy(wpose))
-    else:
-      wpose.position.z = gripperOffset_sim
-      waypoints.append(copy.deepcopy(wpose))
+    wpose.position.z = self.gripper_offset
+    waypoints.append(copy.deepcopy(wpose))
 
     
     (plan, fraction) = group.compute_cartesian_path(
@@ -252,9 +249,9 @@ class PickPlaceServer:
 
     plan = group.go(wait=True)
 
-    print(group.get_current_pose().pose.position.x)
-    print(group.get_current_pose().pose.position.y)
-    print(group.get_current_pose().pose.position.z)
+    #print(group.get_current_pose().pose.position.x)
+    #print(group.get_current_pose().pose.position.y)
+    #print(group.get_current_pose().pose.position.z)
 
     return success
 
@@ -271,18 +268,14 @@ class PickPlaceServer:
     #wpose.position.y = 0.1
     #waypoints.append(copy.deepcopy(wpose))
 
-    wpose.position.y = self.Goal_pose.position.y
-    waypoints.append(copy.deepcopy(wpose))
-
     wpose.position.x = self.Goal_pose.position.x
+    wpose.position.y = self.Goal_pose.position.y
+    wpose.position.z = self.gripper_offset + 0.07
     waypoints.append(copy.deepcopy(wpose))
 
-    if not self.sim:
-      wpose.position.z = gripperOffset
-      waypoints.append(copy.deepcopy(wpose))
-    else:
-      wpose.position.z = gripperOffset_sim
-      waypoints.append(copy.deepcopy(wpose))
+    wpose.position.z = self.gripper_offset
+    waypoints.append(copy.deepcopy(wpose))
+
     
 
     (plan, fraction) = group.compute_cartesian_path(
@@ -322,11 +315,11 @@ class PickPlaceServer:
     group = self.group
    
     waypoints = []
-    wpose = group.get_current_pose().pose
+    #wpose = group.get_current_pose().pose
 
-    wpose.position.y = 0.1
-    wpose.position.z = 0.4
-    waypoints.append(copy.deepcopy(wpose))
+    #wpose.position.y = 0.1
+    #wpose.position.z = 0.4
+    #waypoints.append(copy.deepcopy(wpose))
 
     #wpose.position.x = self.home_pose.position.x
     #waypoints.append(copy.deepcopy(wpose))
@@ -353,18 +346,13 @@ class PickPlaceServer:
 
     return success
 
-  def execute_push(self, pos, quat):
+  def execute_push(self, pos):
     print('execute_push')
     group = self.group
     waypoints = []
-
     wpose = group.get_current_pose().pose
     wpose.position.x = pos.x
     wpose.position.y = pos.y
-    wpose.orientation.x = quat[0]
-    wpose.orientation.y = quat[1]
-    wpose.orientation.z = quat[2]
-    wpose.orientation.w = quat[3]
     waypoints.append(copy.deepcopy(wpose))
     
     (plan, fraction) = group.compute_cartesian_path(
@@ -373,61 +361,89 @@ class PickPlaceServer:
                                        0.0,         # jump_threshold
                                        True)
     
-    print(fraction)
-    success = False
-    if (fraction == 1):
+    #print("execute_push fraction: " +str(fraction))
+    success = False    
+    if fraction > 0:
       success = True
       group.execute(plan)
-
     return success    
+
   
-  def go_to_pre_push_pose(self, pos, quat):
+  def go_to_pre_push_pose(self, pos, quat_1, quat_2):
     print('go_to_pre_push_pose')
     group = self.group
-    waypoints = []
 
-    wpose = group.get_current_pose().pose
-    #waypoints.append(copy.deepcopy(wpose))
-    
-    #wpose = geometry_msgs.msg.Pose()
-    #wpose.position = pos
-    wpose.position.z = 0.4
-    wpose.orientation.x = quat[0]
-    wpose.orientation.y = quat[1]
-    wpose.orientation.z = quat[2]
-    wpose.orientation.w = quat[3]
+    waypoints = []        
+    wpose = geometry_msgs.msg.Pose()
+    wpose.position.x = pos.x
+    wpose.position.y = pos.y
+    wpose.position.z = 0.2
+    wpose.orientation.x = quat_1[0]
+    wpose.orientation.y = quat_1[1]
+    wpose.orientation.z = quat_1[2]
+    wpose.orientation.w = quat_1[3]
+    waypoints.append(copy.deepcopy(wpose))
+    wpose.position.z = 0.07
     waypoints.append(copy.deepcopy(wpose))
 
-    wpose.position.z = 0.1
-    waypoints.append(copy.deepcopy(wpose))
-    
-    (plan, fraction) = group.compute_cartesian_path(
+    (plan_1, fraction_1) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
                                        0.01,        # eef_step
                                        0.0,         # jump_threshold
-                                       True)
-    print(fraction)
-    success = False
-    if (fraction == 1):
+                                       True)    
+
+    waypoints = []        
+    wpose = geometry_msgs.msg.Pose()
+    wpose.position.x = pos.x
+    wpose.position.y = pos.y
+    wpose.position.z = 0.2
+    wpose.orientation.x = quat_2[0]
+    wpose.orientation.y = quat_2[1]
+    wpose.orientation.z = quat_2[2]
+    wpose.orientation.w = quat_2[3]
+    waypoints.append(copy.deepcopy(wpose))
+    wpose.position.z = 0.07
+    waypoints.append(copy.deepcopy(wpose))
+
+    (plan_2, fraction_2) = group.compute_cartesian_path(
+                                       waypoints,   # waypoints to follow
+                                       0.01,        # eef_step
+                                       0.0,         # jump_threshold
+                                       True)         
+    
+    #print("go_to_pre_push fractions: " + str(fraction_1) + "," + str(fraction_2))
+
+    success = False  
+    if (fraction_1 == 1):
       success = True
-      group.execute(plan)
-      #time.sleep(1)
+      group.execute(plan_1)
+    elif (fraction_2 == 1):
+      success = True
+      group.execute(plan_2)
 
     return success    
 
+  def limit_angle_pi_minus_pi(self, angle):
+    if angle > pi:
+      angle = angle - pi
+    elif angle < pi:
+      angle = angle + pi
+    return angle
+  
   def compute_push_orientation(self, p1, p2):    
     x_diff = p2.x - p1.x
     y_diff = p2.y - p1.y
     from math import atan2
     angle = atan2(y_diff,x_diff)
-    print "angle: " + str(angle)
+    #print "angle: " + str(angle)
     #GradM = Ydiff/Xdiff
     #Yoffset = p2.y - GradM * p2.x;
     #import numpy as np 
     #Zangle = - np.tanh(1/GradM);
-    quat = quaternion_from_euler(0, 0, angle)
-    #quat = quaternion_from_euler(pi/2, 0, angle)
-    return quat
+    
+    quat_1 = quaternion_from_euler(0, 0, self.limit_angle_pi_minus_pi(angle-pi/2))
+    quat_2 = quaternion_from_euler(0, 0, self.limit_angle_pi_minus_pi(angle+pi/2))
+    return quat_1, quat_2
     
   def executeCB(self, goal):
     rospy.loginfo("executeCB: PickPlaceAction")
@@ -441,10 +457,9 @@ class PickPlaceServer:
     self.Goal_pose.position.z = goal.placement.point.z
 
     if goal.action_type == 1: #Push Action
-      print("Push Action TBD");
-      quat = self.compute_push_orientation(goal.obj_centroid.point, goal.placement.point)
-      self.go_to_pre_push_pose(goal.obj_centroid.point, quat)
-      self.execute_push(goal.placement.point, quat)
+      [quat_1, quat_2] = self.compute_push_orientation(goal.obj_centroid.point, goal.placement.point)
+      self.go_to_pre_push_pose(goal.obj_centroid.point, quat_1, quat_2)
+      self.execute_push(goal.placement.point)
       self.go_home()
       self.server.set_succeeded()
       return

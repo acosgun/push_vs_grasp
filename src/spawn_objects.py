@@ -41,9 +41,9 @@ if __name__ == '__main__':
     model_name = "unit_cylinder"
     obj_list = []
 
-    min_x = -0.4
-    max_x = 0.4
-    min_y = -0.35
+    min_x = -0.3
+    max_x = 0.3
+    min_y = -0.3
     max_y = 0.05
         
     fout_obj_1 = open(model_filename_obj_1, "r")

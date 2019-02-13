@@ -43,6 +43,8 @@ class ApplyForce : public Test
   std::string gray_str = "gray";
   void* red_ptr; void* blue_ptr; void* red_goal_ptr; void* blue_goal_ptr; void* gray_ptr;
   double pix_coeff = 50.0;
+  double ee_long = 0.32;
+  double ee_short = 0.08;    
   b2Body* ee_body;
   b2Body* robot_base_body;
   b2Body* red_goal_body;
@@ -92,6 +94,7 @@ class ApplyForce : public Test
       circleShape.m_radius = state.bodies[i].radius;      
       b2FixtureDef myFixtureDef;
       myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
+      myFixtureDef.friction = 10.0;
       dynamicBody1->CreateFixture(&myFixtureDef); //add a fixture to the body
       bodyUserData* myStruct = new bodyUserData;	    
       myStruct->id = state.bodies[i].id;
@@ -162,6 +165,7 @@ class ApplyForce : public Test
 
     PushDef push_def;
     double goal_threshold = 0.05;
+    double ee_multiplier = 1.25;
     
     //find collision-free position for EE	  
     b2Body* goal_body;
@@ -174,6 +178,7 @@ class ApplyForce : public Test
     b2Vec2 linear_velocity = calc_linear_velocity(b, goal_body, magnitude);
     double angle = calc_angle(b, goal_body);
     set_sensor_status(ee_body, true);
+    set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
     ee_body->SetTransform(b->GetPosition(), angle); //uniform angle sampling
 
     ee_body->SetActive(true);
@@ -187,6 +192,7 @@ class ApplyForce : public Test
       
       if (!in_collision_1 && !in_collision_2) { //Collision Free!
 	ee_body->SetLinearVelocity(b2Vec2(0,0));
+	set_obj_dimensions(ee_body, ee_long, ee_short);
 	set_sensor_status(ee_body, false);
 	break;
       }
@@ -240,7 +246,7 @@ class ApplyForce : public Test
   void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached, int& action_type)
   {    
     bool enable_draw = false;
-    double padding_for_gripper = 0.02;
+    double padding_for_gripper = 0.04;
 
     set_bodies();
     
@@ -252,7 +258,11 @@ class ApplyForce : public Test
       return;
     }
 
-    action_type = 1; //1 = push. 2 = pick&place
+    //1 = push. 2 = pick&place
+    if (rand() % 2 == 0)
+      action_type = 1; 
+    else
+      action_type = 2;
     
     //Algo: greedy search for 1 goal-oriented push per object
     WorldState state = save_world();
@@ -274,6 +284,9 @@ class ApplyForce : public Test
     int min_index = std::distance(heuristics.begin(), smallest);	
     min_push_def = push_defs[min_index];
 
+    //visualize selected push
+    simulate_push(displaced_bodies[min_index], true, true);
+    load_world(state);
           
     if (action_type == 1) {
 
@@ -366,6 +379,12 @@ class ApplyForce : public Test
     b2Fixture* F = b->GetFixtureList();
     b2CircleShape* circle = (b2CircleShape*) F->GetShape();
     circle->m_radius = radius;
+  }
+
+  void set_obj_dimensions(b2Body* b, double dim_long, double dim_short) {
+    b2Fixture* F = b->GetFixtureList();
+    b2PolygonShape* poly = (b2PolygonShape*) F->GetShape();
+    poly->SetAsBox(dim_long*pix_coeff*0.5, dim_short*pix_coeff*0.5);
   }
 	
   int get_body_id(b2Body* b) {
@@ -551,7 +570,7 @@ class ApplyForce : public Test
     b2EdgeShape shape;
     b2FixtureDef sd;
     sd.shape = &shape;
-    sd.friction = 0.3f;
+    sd.friction = 10.0f;
 	  
     double table_x_len = 1.5;
     double table_y_len = 0.8;
@@ -600,8 +619,6 @@ class ApplyForce : public Test
     robot_base_body->SetUserData(robot_base_data);
 
     //Robot End Effector
-    double ee_long = 0.3;
-    double ee_short = 0.07;
     b2BodyDef ee_body_def;
     ee_body_def.type = b2_dynamicBody;
     ee_body_def.position.Set(0.0,0.0);	  
