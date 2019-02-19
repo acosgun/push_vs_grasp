@@ -10,12 +10,12 @@
   <!-- 1. Run roslaunch push_vs_grasp ar_tracking.launch-->
   <!-- 2. Run rosrun tf tf_echo /ar_marker_2 /camera_link-->
   <!-- 3. Input results below -->
-  <arg name="x_cal" value="-1.25452380015"/>
-  <arg name="y_cal" value="-0.0409562897187"/>
-  <arg name="z_cal" value="0.536076342267"/>
-  <arg name="r_cal" value="-2.25628140397"/>
-  <arg name="p_cal" value="0.00520005069222"/>
-  <arg name="yaw_cal" value="-1.58099374934"/>
+  <arg name="x_cal" value="-1.05101313168"/>
+  <arg name="y_cal" value="-0.0336316439475"/>
+  <arg name="z_cal" value="1.09855251038"/>
+  <arg name="r_cal" value="-2.59756980709"/>
+  <arg name="p_cal" value="0.0224844440277"/>
+  <arg name="yaw_cal" value="-1.55330731835"/>
 
 
   <!-- Goal Regions -->
@@ -96,7 +96,7 @@
 
   <!-- actionlib servers -->
   <include file="$(find push_vs_grasp)/launch/pick_place.launch">
-	<arg name="sim" value="$(arg sim)"/>	
+	<arg name="sim" value="$(arg sim)"/>
   </include>
 
   <!-- moveit -->

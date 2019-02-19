@@ -26,17 +26,24 @@ import time
 from push_vs_grasp.msg import PickPlaceAction
 
 #GLOBAL VARIABLES
-gripperOffset = 0.25
+gripperOffset = 0.3
 gripperOffset_sim = 0.32
+jump_threshold = 5
 class PickPlaceServer:
   def __init__(self):
     #Gazebo Simluation
 
     self.sim = rospy.myargv(argv=sys.argv)[1]
+    rospy.loginfo(self.sim)
+
     self.init_moveit()
+    rospy.loginfo("init_moveit ")
 
     self.init_gazebo()
+    rospy.loginfo("init_gazebo ")
+
     self.init_real()
+    rospy.loginfo("init_real ")
 
     self.obj_name ="n/a"
     self.obj_state = 'n/a'
@@ -45,14 +52,33 @@ class PickPlaceServer:
     self.home_pose = geometry_msgs.msg.Pose()
     self.Goal_pose = geometry_msgs.msg.Pose()
     self.Target_pose = geometry_msgs.msg.Pose()
+    rospy.loginfo("Target_pose ")
 
     self.server = actionlib.SimpleActionServer('pick_place', PickPlaceAction, self.executeCB, False)
+    rospy.loginfo("server ")
 
     self.init_home_pose()
+    rospy.loginfo("init_home_pose ")
 
     self.go_home()
+    rospy.loginfo("go_home ")
+
     self.server.start()
     rospy.loginfo("Pick Place Server ON")
+    
+    rospy.loginfo("Pick Place Server ON")
+
+    rospy.loginfo("Pick Place Server ON")
+
+    rospy.loginfo("Pick Place Server ON")
+
+    rospy.loginfo("Pick Place Server ON")
+
+    rospy.loginfo("Pick Place Server ON")
+
+    rospy.loginfo("Pick Place Server ON")
+
+
 
   def init_moveit(self):
 
@@ -63,7 +89,8 @@ class PickPlaceServer:
       self.gripper_offset = gripperOffset_sim
     else:
       self.gripper_offset = gripperOffset
-      
+      self.sim = False
+
     scene = moveit_commander.PlanningSceneInterface("base_link")
     time.sleep(2)
     # Create table obstacle
@@ -192,12 +219,12 @@ class PickPlaceServer:
     self.Goal_pose   = copy.deepcopy(self.home_pose)
 
   def Gripper_close(self):
-    self.Grip.rPR = 105
+    self.Grip.rPR = 100
     self.pub.publish(self.Grip)
     time.sleep(2)
 
   def Gripper_open(self):
-    self.Grip.rPR = 0
+    self.Grip.rPR = 50
     self.pub.publish(self.Grip)
     time.sleep(2)
 
@@ -212,7 +239,7 @@ class PickPlaceServer:
     wpose = group.get_current_pose().pose
     wpose.position.x = self.Target_pose.position.x
     wpose.position.y = self.Target_pose.position.y
-    wpose.position.z = self.gripper_offset + 0.07
+    wpose.position.z = self.gripper_offset + 0.1
     waypoints.append(copy.deepcopy(wpose))
 
     wpose.position.z = self.gripper_offset
@@ -221,8 +248,8 @@ class PickPlaceServer:
 
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
-                                       0.05,        # eef_step
-                                       0.0,         # jump_threshold
+                                       0.01,        # eef_step
+                                       jump_threshold,         # jump_threshold
                                        True)
     success = False
     # Plan the trajectory
@@ -237,7 +264,7 @@ class PickPlaceServer:
         #Vanish Object in Gazebo
         self.vanish_gazebo_object(self.obj_name)
 
-    wpose.position.z = 0.4
+    wpose.position.z = 0.5
     group.set_pose_target(wpose)
 
     plan = group.go(wait=True)
@@ -263,16 +290,16 @@ class PickPlaceServer:
 
     wpose.position.x = self.Goal_pose.position.x
     wpose.position.y = self.Goal_pose.position.y
-    wpose.position.z = self.gripper_offset + 0.07
+    wpose.position.z = self.gripper_offset + 0.2
     waypoints.append(copy.deepcopy(wpose))
 
-    wpose.position.z = self.gripper_offset
+    wpose.position.z = self.gripper_offset + 0.02
     waypoints.append(copy.deepcopy(wpose))
 
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
-                                       0.05,        # eef_step
-                                       0.0,         # jump_threshold
+                                       0.01,        # eef_step
+                                       jump_threshold,         # jump_threshold
                                        True)
 
     success = False
@@ -321,7 +348,7 @@ class PickPlaceServer:
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
                                        0.01,        # eef_step
-                                       0.0,         # jump_threshold
+                                       jump_threshold,         # jump_threshold
                                        True)
 
     success = False
@@ -349,7 +376,7 @@ class PickPlaceServer:
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
                                        0.01,        # eef_step
-                                       0.0,         # jump_threshold
+                                       jump_threshold,         # jump_threshold
                                        True)
     
     #print("execute_push fraction: " +str(fraction))
@@ -380,7 +407,7 @@ class PickPlaceServer:
     (plan_1, fraction_1) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
                                        0.01,        # eef_step
-                                       0.0,         # jump_threshold
+                                       jump_threshold,         # jump_threshold
                                        True)    
 
     waypoints = []        
@@ -399,7 +426,7 @@ class PickPlaceServer:
     (plan_2, fraction_2) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
                                        0.01,        # eef_step
-                                       0.0,         # jump_threshold
+                                       jump_threshold,         # jump_threshold
                                        True)         
     
     #print("go_to_pre_push fractions: " + str(fraction_1) + "," + str(fraction_2))

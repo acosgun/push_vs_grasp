@@ -263,7 +263,7 @@ class ApplyForce : public Test
     if (rand() % 2 == 0)
       action_type = 1; 
     else
-      action_type = 2;
+      action_type = 1;
     
           
     if (action_type == 1) {
