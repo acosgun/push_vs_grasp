@@ -1,4 +1,12 @@
 <?xml version="1.0"?>
 <launch>
-<node pkg="push_vs_grasp" name="task_planner" type="task_planner" output="screen"/>
+  <node pkg="push_vs_grasp" name="task_planner" type="task_planner" output="screen">
+    <param name="min_x" value="-0.55"/>
+    <param name="max_x" value="-0.2"/>
+    <param name="min_y" value="-0.3"/>
+    <param name="max_y" value="0.3"/>
+    <param name="min_obj" value="1"/>
+    <param name="max_obj" value="10"/>
+    <param name="runs_per_obj" value="10"/>
+  </node>
 </launch>

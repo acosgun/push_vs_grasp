@@ -1,0 +1,14 @@
+# Define the goal
+float32 min_x
+float32 max_x
+float32 min_y
+float32 max_y
+int32 num_objs
+
+---
+# Define the result
+geometry_msgs/PointStamped[] centroids
+string[] colors
+
+---
+# Define a feedback message

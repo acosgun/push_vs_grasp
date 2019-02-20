@@ -6,89 +6,96 @@ from gazebo_msgs.srv import *
 from std_srvs.srv import Empty
 from geometry_msgs.msg import *
 from gazebo_msgs.msg import ModelState, LinkState
+import actionlib
+import push_vs_grasp.msg
 
-if __name__ == '__main__':
+class GenerateCylinders(object):
 
-    rospy.init_node("spawn_objects")
-    model_filename_obj_1 = rospy.get_param('~model_filename_obj_1')
-    model_filename_obj_2 = rospy.get_param('~model_filename_obj_2')
-        
-    world_frame = "world"
-
-    rospy.wait_for_service("gazebo/delete_model")
-    rospy.wait_for_service("gazebo/spawn_sdf_model")
-    #rospy.wait_for_service("gazebo/spawn_urdf_model")
-    #rospy.wait_for_service("gazebo/set_model_state")
-    #rospy.wait_for_service("gazebo/get_model_state")
-    #rospy.wait_for_service("gazebo/get_link_state")
-    #rospy.wait_for_service("gazebo/set_link_state")
-    #rospy.wait_for_service("gazebo/reset_world")
-    rospy.wait_for_service("gazebo/pause_physics")
-    rospy.wait_for_service("gazebo/unpause_physics")
+    _result = push_vs_grasp.msg.GenerateCylindersResult()
     
-    delete_model = rospy.ServiceProxy("/gazebo/delete_model", DeleteModel)
-    spawn_sdf_model = rospy.ServiceProxy("/gazebo/spawn_sdf_model", SpawnModel)
-    #spawn_urdf_model = rospy.ServiceProxy("/gazebo/spawn_urdf_model", SpawnModel)
-    #set_model_state = rospy.ServiceProxy("/gazebo/set_model_state", SetModelState)
-    #get_model_state = rospy.ServiceProxy("/gazebo/get_model_state", GetModelState)
-    #get_link_state = rospy.ServiceProxy("/gazebo/get_link_state", GetLinkState)
-    #set_link_state = rospy.ServiceProxy("/gazebo/set_link_state", SetLinkState)
-    #reset_world = rospy.ServiceProxy("/gazebo/reset_world", Empty)
-    pause_physics = rospy.ServiceProxy("/gazebo/pause_physics", Empty)
-    unpause_physics = rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
-        
-    num_objs = 5
-    model_name = "unit_cylinder"
-    obj_list = []
+    def __init__(self, name):        
+        self.model_filename_obj_1 = rospy.get_param('~model_filename_obj_1')
+        self.model_filename_obj_2 = rospy.get_param('~model_filename_obj_2')        
 
-    min_x = -0.3
-    max_x = 0.3
-    min_y = -0.3
-    max_y = 0.05
+        self.model_name = "unit_cylinder"
         
-    fout_obj_1 = open(model_filename_obj_1, "r")
-    fout_obj_2 = open(model_filename_obj_2, "r")
-    obj_xml_1 = fout_obj_1.read()
-    obj_xml_2 = fout_obj_2.read() 
-    fout_obj_1.close()
-    fout_obj_2.close()
-            
-    pause_physics()
-        
-    while len(obj_list) < num_objs:
-        import random
-        x = random.uniform(min_x,max_x)
-        y = random.uniform(min_y,max_y)
-        z = 1.08
-            
-        #check collisions with others in the list
-        collision = False
-        coll_radius = 0.08
-        for j in obj_list:
-            if sqrt((j.x-x)**2 + (j.y-y)**2) < coll_radius:
-                collision = True
-                break
-            
-        if collision == False:                
-            
-            #Spawn Object
-            item_pose = Pose(Point(x,y,z), Quaternion(0,0,0,0))
+        rospy.wait_for_service("gazebo/delete_model")
+        rospy.wait_for_service("gazebo/spawn_sdf_model")
+        rospy.wait_for_service("gazebo/pause_physics")
+        rospy.wait_for_service("gazebo/unpause_physics")
 
+        self.delete_model = rospy.ServiceProxy("/gazebo/delete_model", DeleteModel)
+        self.spawn_sdf_model = rospy.ServiceProxy("/gazebo/spawn_sdf_model", SpawnModel)
+        self.pause_physics = rospy.ServiceProxy("/gazebo/pause_physics", Empty)
+        self.unpause_physics = rospy.ServiceProxy("/gazebo/unpause_physics", Empty)
+
+        fout_obj_1 = open(self.model_filename_obj_1, "r")
+        fout_obj_2 = open(self.model_filename_obj_2, "r")
+        self.obj_xml_1 = fout_obj_1.read()
+        self.obj_xml_2 = fout_obj_2.read() 
+        fout_obj_1.close()
+        fout_obj_2.close()
+                
+        self._as = actionlib.SimpleActionServer("generate_cylinders", push_vs_grasp.msg.GenerateCylindersAction, execute_cb=self.execute_cb, auto_start = False)
+        self._as.start()
+        print "GenerateCylinders Server ON"
+        
+    def execute_cb(self, goal):
+        print "GenerateCylinders execute_cb"
+        
+        num_objs = goal.num_objs
+        min_x = goal.min_x
+        max_x = goal.max_x
+        min_y = goal.min_y
+        max_y = goal.max_y
+
+        obj_list = []
+        
+        self.pause_physics()
+    
+        while len(obj_list) < num_objs:
             import random
-            if random.random() > 0.5:
-                cur_xml = obj_xml_1
-            else:
-                cur_xml = obj_xml_2
+            x = random.uniform(min_x,max_x)
+            y = random.uniform(min_y,max_y)
+            #z = 1.08
+            z = 0.05
+        
+            #check collisions with others in the list
+            collision = False
+            coll_radius = 0.08
+            for j in obj_list:
+                if sqrt((j.x-x)**2 + (j.y-y)**2) < coll_radius:
+                    collision = True
+                    break
+            
+            if collision == False:                
+            
+                #Spawn Object
+                item_pose = Pose(Point(x,y,z), Quaternion(0,0,0,0))
+                
+                import random
+                if random.random() > 0.5:
+                    cur_xml = self.obj_xml_1
+                else:
+                    cur_xml = self.obj_xml_2
 
-            cur_model_name = model_name + str(len(obj_list))
-            delete_model(cur_model_name)
-            
-            spawn_sdf_model(cur_model_name, cur_xml, "", item_pose, "table::link")
-            
-            #add object to list
-            pt = geometry_msgs.msg.Point()
-            pt.x = x
-            pt.y = y
-            pt.z = z
-            obj_list.append(pt)
-    unpause_physics()    
+                cur_model_name = self.model_name + str(len(obj_list))
+                self.delete_model(cur_model_name)
+                
+                #self.spawn_sdf_model(cur_model_name, cur_xml, "", item_pose, "table::link")
+                self.spawn_sdf_model(cur_model_name, cur_xml, "", item_pose, "robot::base_link")
+                
+                #add object to list
+                pt = geometry_msgs.msg.Point()
+                pt.x = x
+                pt.y = y
+                pt.z = z
+                obj_list.append(pt)
+                self.unpause_physics()    
+
+        self._as.set_succeeded(self._result)
+                
+if __name__ == '__main__':
+    rospy.init_node('generate_cylinders')
+    server = GenerateCylinders(rospy.get_name())
+    rospy.spin()

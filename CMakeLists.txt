@@ -85,6 +85,7 @@ add_action_files(
   FILES
   PickPlace.action
   Plan.action
+  GenerateCylinders.action
 )
 
 ## Generate added messages and services with any dependencies listed here

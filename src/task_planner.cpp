@@ -16,6 +16,10 @@
 #include <push_vs_grasp/PickPlaceAction.h>
 #include <push_vs_grasp/PickPlaceGoal.h>
 
+#include <push_vs_grasp/GenerateCylindersAction.h>
+#include <push_vs_grasp/GenerateCylindersGoal.h>
+
+
 void spinThread()
 {
   ros::spin();
@@ -24,24 +28,62 @@ void spinThread()
 int main (int argc, char **argv)
 {
   ros::init(argc, argv, "push_client");
+
+  ros::NodeHandle nh("~");
+  double min_x; double max_x; double min_y; double max_y;
+  int min_obj; int max_obj; int runs_per_obj;
+  nh.getParam("min_x", min_x);
+  nh.getParam("max_x", max_x);
+  nh.getParam("min_y", min_y);
+  nh.getParam("max_y", max_y);
+  nh.getParam("min_obj", min_obj);
+  nh.getParam("max_obj", max_obj);
+  nh.getParam("runs_per_obj", runs_per_obj);
+  
   srand (time(NULL));
 
   actionlib::SimpleActionClient<kinect_segmentation::ScanObjectsAction> ScanObjects_Action_client("scan_objects");
   actionlib::SimpleActionClient<push_vs_grasp::PlanAction> Plan_Action_client("box2d_planner");
   actionlib::SimpleActionClient<push_vs_grasp::PickPlaceAction> PickPlace_Action_client("pick_place");
+  actionlib::SimpleActionClient<push_vs_grasp::GenerateCylindersAction> GenerateCylinders_Action_client("generate_cylinders");
 
   boost::thread spin_thread(&spinThread);
 
-  ROS_INFO("Waiting for action Client to startup.");
-  ScanObjects_Action_client.waitForServer(); //will wait for infinite time
+  ROS_INFO("Waiting for ScanObjects action client.");
+  ScanObjects_Action_client.waitForServer();
   ROS_INFO("ScanObjects_Action_client started");
-  PickPlace_Action_client.waitForServer(); //will wait for infinite time
-  ROS_INFO("PickPlace_Action_client started");
-  Plan_Action_client.waitForServer(); //will wait for infinite time
-  ROS_INFO("Plan_Action_client started");
 
+  ROS_INFO("Waiting for PickPlace action client.");
+  PickPlace_Action_client.waitForServer();
+  ROS_INFO("PickPlace action client started");
+
+  ROS_INFO("Waiting for Plan action client.");  
+  Plan_Action_client.waitForServer();  
+  ROS_INFO("Plan action client started");
+
+  ROS_INFO("Waiting for Generate Cylinders action client.");
+  GenerateCylinders_Action_client.waitForServer();
+  ROS_INFO("Generate Cylinders action client started");  
+  
   bool plan_success = false;
 
+  //GenerateCylinders Action
+  push_vs_grasp::GenerateCylindersGoal gen_cylinders_goal;
+  gen_cylinders_goal.min_x = min_x;
+  gen_cylinders_goal.max_x = max_x;
+  gen_cylinders_goal.min_y = min_y;
+  gen_cylinders_goal.max_y = max_y;
+
+  gen_cylinders_goal.num_objs = 5;
+  GenerateCylinders_Action_client.sendGoal(gen_cylinders_goal);  
+  bool gen_cylinders_result = GenerateCylinders_Action_client.waitForResult();
+  
+  push_vs_grasp::GenerateCylindersResult GenerateCylinders_Result = *GenerateCylinders_Action_client.getResult();
+  actionlib::SimpleClientGoalState gen_state = GenerateCylinders_Action_client.getState();
+  ROS_INFO("Generate Cylinders Action finished: %s", gen_state.toString().c_str());  
+
+  exit(0);
+  
   while(true)
     {
       //Scan Action
