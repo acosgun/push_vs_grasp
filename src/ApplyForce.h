@@ -258,8 +258,6 @@ class ApplyForce : public Test
       action_type = 1; 
     else
       action_type = 2;
-    
-    action_type = 1;
           
     if (action_type == 1) {
       //Algo: greedy search for 1 goal-oriented push per object
