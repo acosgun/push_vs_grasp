@@ -64,21 +64,7 @@ class PickPlaceServer:
     rospy.loginfo("go_home ")
 
     self.server.start()
-    rospy.loginfo("Pick Place Server ON")
-    
-    rospy.loginfo("Pick Place Server ON")
-
-    rospy.loginfo("Pick Place Server ON")
-
-    rospy.loginfo("Pick Place Server ON")
-
-    rospy.loginfo("Pick Place Server ON")
-
-    rospy.loginfo("Pick Place Server ON")
-
-    rospy.loginfo("Pick Place Server ON")
-
-
+    rospy.loginfo("Pick Place Server ON")  
 
   def init_moveit(self):
 
@@ -151,7 +137,7 @@ class PickPlaceServer:
     self.set_model_state(state)
 
   def get_closest_object(self, closest_obj):
-    max_num_objs = 5
+    max_num_objs = 10
     model_name = "unit_cylinder"
     import sys
     min_dist = sys.float_info.max
@@ -364,6 +350,25 @@ class PickPlaceServer:
 
     return success
 
+  def lift_ee_up(self):
+    print('lift_ee_up')
+    group = self.group
+    waypoints = []
+    wpose = group.get_current_pose().pose
+    wpose.position.z = wpose.position.z + 0.1
+    waypoints.append(copy.deepcopy(wpose))
+    (plan, fraction) = group.compute_cartesian_path(
+                                       waypoints,   # waypoints to follow
+                                       0.01,        # eef_step
+                                       0.0,         # jump_threshold
+                                       True)
+    success = False    
+    if fraction > 0:
+      success = True
+      group.execute(plan)
+    return success    
+
+    
   def execute_push(self, pos):
     print('execute_push')
     group = self.group
@@ -379,7 +384,6 @@ class PickPlaceServer:
                                        jump_threshold,         # jump_threshold
                                        True)
     
-    #print("execute_push fraction: " +str(fraction))
     success = False    
     if fraction > 0:
       success = True
@@ -474,11 +478,22 @@ class PickPlaceServer:
     self.Goal_pose.position.y = goal.placement.point.y
     self.Goal_pose.position.z = goal.placement.point.z
 
+    print "Start: "
+    print goal.obj_centroid.point
+
+    print "End: " 
+    print goal.placement.point
+
+    
     if goal.action_type == 1: #Push Action
       [quat_1, quat_2] = self.compute_push_orientation(goal.obj_centroid.point, goal.placement.point)
-      self.go_to_pre_push_pose(goal.obj_centroid.point, quat_1, quat_2)
-      self.execute_push(goal.placement.point)
-      self.go_home()
+      
+      success = self.go_to_pre_push_pose(goal.obj_centroid.point, quat_1, quat_2)
+      if success:
+        success = self.execute_push(goal.placement.point)
+      if success:
+        success = self.lift_ee_up()
+        success = self.go_home()
       self.server.set_succeeded()
       return
     

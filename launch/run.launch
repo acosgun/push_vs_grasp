@@ -2,6 +2,7 @@
 <launch>
 
   <arg name="sim" default="true" />
+  <arg name="perfect_perception" default="false" />
   <arg name="robot_ip" unless="$(arg sim)"  default ="10.0.0.99"/>
   <arg name="debug" default="false" />
   <arg name="limited" default="true" />
@@ -40,6 +41,7 @@
 
     <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch">
       <arg name="sim" value="$(arg sim)"/>
+      <arg name="perfect_perception" value="$(arg perfect_perception)"/>
       <arg name="point_cloud_topic" value="/camera/depth/points"/>
       <arg name="x_min" value ="$(arg x_min)"/>
       <arg name="x_max" value ="$(arg x_max)"/>
@@ -76,6 +78,7 @@
     <!--camera_link   /camera/depth_registered/points-->
     <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch">
       <arg name="sim" value="$(arg sim)"/>
+      <arg name="perfect_perception" value="$(arg perfect_perception)"/>
       <arg name="point_cloud_topic" value="/kinect2/hd/points"/>
       <arg name="x_min" value ="$(arg x_min)"/>
       <arg name="x_max" value ="$(arg x_max)"/>

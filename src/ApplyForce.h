@@ -27,6 +27,11 @@ struct PushDef {
   b2Vec2 push_end;
 };
 
+void print_push_def (PushDef d) {
+  std::cout << "Start: (" << d.push_start.x <<"," << d.push_start.y << ")" << std::endl;
+  std::cout << "End: (" << d.push_end.x <<"," << d.push_end.y << ")" << std::endl;
+}
+
 class ApplyForce : public Test
 {
 
@@ -35,8 +40,6 @@ class ApplyForce : public Test
   std::vector<double> radiuses;
   std::vector<double> goal_radiuses;
   std::vector<std::string> colors;
-  geometry_msgs::PointStamped red_goal;
-  geometry_msgs::PointStamped blue_goal;
   std::string red_str = "red";
   std::string blue_str = "blue";
   std::string red_goal_str = "red_goal";
@@ -50,8 +53,6 @@ class ApplyForce : public Test
   b2Body* robot_base_body;
   b2Body* red_goal_body;
   b2Body* blue_goal_body;
-  std::vector<b2Body*> red_bodies;
-  std::vector<b2Body*> blue_bodies;
   
  public:
  ApplyForce(): red_ptr(&red_str), blue_ptr(&blue_str), red_goal_ptr(&red_goal_str), blue_goal_ptr(&blue_goal_str), gray_ptr(&gray_str) { }
@@ -95,7 +96,7 @@ class ApplyForce : public Test
       circleShape.m_radius = state.bodies[i].radius;      
       b2FixtureDef myFixtureDef;
       myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
-      myFixtureDef.friction = 10.0;
+      myFixtureDef.friction = 1.0;
       dynamicBody1->CreateFixture(&myFixtureDef); //add a fixture to the body
       bodyUserData* myStruct = new bodyUserData;	    
       myStruct->id = state.bodies[i].id;
@@ -162,11 +163,12 @@ class ApplyForce : public Test
     return mag;
   }
        	
-  PushDef simulate_push(b2Body* b, bool goal_oriented, bool draw) {    
-
+  PushDef simulate_push(int obj_id, bool goal_oriented, bool draw) {    
     PushDef push_def;
-    double goal_threshold = 0.05;
+    double goal_threshold = 0.08;
     double ee_multiplier = 1.25;
+
+    b2Body* b = get_object_from_id(obj_id);          
     
     //find collision-free position for EE	  
     b2Body* goal_body;
@@ -180,18 +182,16 @@ class ApplyForce : public Test
     double angle = calc_angle(b, goal_body);
     set_sensor_status(ee_body, true);
     set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
-    ee_body->SetTransform(b->GetPosition(), angle); //uniform angle sampling
+    ee_body->SetTransform(b->GetPosition(), angle);
 
     ee_body->SetActive(true);
     ee_body->SetLinearVelocity(linear_velocity);
 	  
     // Find collision-free pre-push pose
     while(true) {
-      bool in_collision_1 = coll_check(ee_body, red_bodies);
-      bool in_collision_2 = coll_check(ee_body, blue_bodies);
-      //bool in_collision_3 = coll_check(ee_body, robot_base_body);
+      bool in_collision_1 = coll_check(ee_body);
       
-      if (!in_collision_1 && !in_collision_2) { //Collision Free!
+      if (!in_collision_1) { //Collision Free!
 	ee_body->SetLinearVelocity(b2Vec2(0,0));
 	set_obj_dimensions(ee_body, ee_long, ee_short);
 	set_sensor_status(ee_body, false);
@@ -202,11 +202,13 @@ class ApplyForce : public Test
       }
     }
 
-    push_def.push_start = ee_body->GetPosition();
-    
+    // Simulate actual push
+    push_def.push_start = ee_body->GetPosition();    
     while (true) {
       double d = get_dist_between_bodies(ee_body, goal_body);
-      if (d < goal_threshold*pix_coeff) {
+      bool collision = coll_check_with_robot_base(ee_body);
+      
+      if (d < goal_threshold*pix_coeff || collision) {
 	ee_body->SetLinearVelocity(b2Vec2(0,0));
 	set_sensor_status(ee_body, true);
 	break;
@@ -235,24 +237,16 @@ class ApplyForce : public Test
     return dist;
   }
 
-  void set_bodies() {
-    red_goal_body = get_objects(red_goal_str)[0];
-    blue_goal_body = get_objects(blue_goal_str)[0];
-    red_bodies = get_objects(red_str);
-    blue_bodies = get_objects(blue_str);
-    //std::cout << "# red_bodies: " << red_bodies.size() << std::endl;
-    //std::cout << "# blue_bodies: " << blue_bodies.size() << std::endl;
-  }
-  
   void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached, int& action_type)
   {    
-    bool enable_draw = true;
+    bool enable_draw = false;
     double padding_for_gripper = 0.04;
 
-    set_bodies();
+    red_goal_body = get_objects(red_goal_str)[0];
+    blue_goal_body = get_objects(blue_goal_str)[0];
     
-    std::vector<b2Body*> displaced_bodies = get_displaced_objects();
-    std::cout << "# displaced_bodies: " << displaced_bodies.size() << std::endl;
+    std::vector<int> displaced_bodies = get_displaced_objects();
+    std::cout << "---- # displaced_bodies: " << displaced_bodies.size() << std::endl;
 
     if (displaced_bodies.empty()) {
       goal_reached = true;
@@ -263,8 +257,9 @@ class ApplyForce : public Test
     if (rand() % 2 == 0)
       action_type = 1; 
     else
-      action_type = 1;
+      action_type = 2;
     
+    action_type = 1;
           
     if (action_type == 1) {
       //Algo: greedy search for 1 goal-oriented push per object
@@ -274,33 +269,47 @@ class ApplyForce : public Test
       double min_heuristic = -DBL_MAX;
       PushDef min_push_def;
       double heuristic = calc_heuristic();
-      std::cout<<"heur INIT: " << heuristic <<std::endl;    
+      std::cout<<"heur INIT: " << heuristic <<std::endl;
 
       for (unsigned int i = 0; i < displaced_bodies.size(); i++) {
 	PushDef push_def = simulate_push(displaced_bodies[i], true, enable_draw);
 	double heuristic = calc_heuristic();
 	std::cout<<"heur[" << i<< "]: " << heuristic <<std::endl;
+	//print_push_def(push_def);
 	heuristics.push_back(heuristic);      
 	push_defs.push_back(push_def);
 	load_world(state);
       }
 
-      auto smallest = std::min_element(heuristics.begin(), heuristics.end());	
-      int min_index = std::distance(heuristics.begin(), smallest);	
+      auto smallest = std::min_element(heuristics.begin(), heuristics.end());
+      int min_index = std::distance(heuristics.begin(), smallest);
+      
       min_push_def = push_defs[min_index];
-
+      //std::cout << "Best Push " <<std::endl;
+      //print_push_def(min_push_def);
       //visualize selected push
-      simulate_push(displaced_bodies[min_index], true, true);
-      load_world(state);
       
       double push_start_x = 0.0, push_start_y = 0.0, push_end_x = 0.0, push_end_y = 0.0;
       box2d_to_robot_frame(min_push_def.push_start.x, min_push_def.push_start.y, push_start_x , push_start_y);
-      box2d_to_robot_frame(min_push_def.push_end.x, min_push_def.push_end.y, push_end_x , push_end_y);      
+      box2d_to_robot_frame(min_push_def.push_end.x, min_push_def.push_end.y, push_end_x , push_end_y);
       obj_centroid.point.x = push_start_x;
       obj_centroid.point.y = push_start_y;
       placement.point.x = push_end_x;
       placement.point.y = push_end_y;
       goal_reached = false;
+
+      /*
+      std::cout << "START "  <<std::endl;
+      std::cout << push_start_x<< std::endl;
+      std::cout << push_start_y<< std::endl;
+      std::cout << "END "  <<std::endl;
+      std::cout << push_end_x<< std::endl;
+      std::cout << push_end_y<< std::endl;
+      */
+
+      simulate_push(displaced_bodies[min_index], true, true);
+      load_world(state);      
+      
       return;
     }
     else if (action_type == 2) {
@@ -313,14 +322,15 @@ class ApplyForce : public Test
     
     //Algo: select an object for pick&place
     while (true) {
-
-      std::vector<b2Body*> displaced_bodies = get_displaced_objects();
+      
+      std::vector<int> displaced_bodies = get_displaced_objects();
 	  
       //choose a random object
-      std::vector<b2Body*>::iterator randIt = displaced_bodies.begin();
+      std::vector<int>::iterator randIt = displaced_bodies.begin();
       std::advance(randIt, std::rand() % displaced_bodies.size());
-      b2Body* cur_body = *randIt;
-
+      int rand_id = *randIt;      
+      b2Body* cur_body = get_object_from_id(rand_id);      
+      
       //choose a placement position in goal region
       b2Body* goal_body;
       if (get_body_color(cur_body) == "red")
@@ -352,14 +362,13 @@ class ApplyForce : public Test
       bool local_goal_satisfied = obj_goal_satisfied(goal_body, cur_body);
 
       //check if proposition collides with any other object
-      bool in_collision_1 = coll_check(cur_body, red_bodies);
-      bool in_collision_2 = coll_check(cur_body, blue_bodies);
+      bool in_collision_1 = coll_check(cur_body);
 	    
       cur_body->SetTransform(b2Vec2(x_init,y_init), angle_init);
       set_obj_radius(cur_body, cur_radius);
       set_sensor_status(cur_body, false);
 
-      if (local_goal_satisfied && !in_collision_1 && !in_collision_2)
+      if (local_goal_satisfied && !in_collision_1)
 	{	      
 	  double x_out, y_out;
 	  box2d_to_robot_frame(x_sampled, y_sampled, x_out, y_out);	    
@@ -396,30 +405,40 @@ class ApplyForce : public Test
       return udStruct->id;
     }
     return -1;
+  }  
+
+  bool coll_check_with_robot_base(b2Body* cur_body) {
+    //check with robot base
+    b2Fixture* f_1 = cur_body->GetFixtureList();
+    b2Fixture* f_2 = robot_base_body->GetFixtureList();
+    bool overlap = b2TestOverlap(f_1->GetShape(), 0, f_2->GetShape(), 0,  cur_body->GetTransform(), robot_base_body->GetTransform());
+    if (overlap)
+      return true;
+    return false;
   }
-	
-  bool coll_check(b2Body* cur_body, std::vector<b2Body*> bodies) {
-    for (unsigned int i=0; i < bodies.size(); i++) {
-      if (get_body_id(cur_body) == get_body_id(bodies[i])) {		
+  
+  bool coll_check(b2Body* cur_body) {
+    //check with tabletop objects
+    b2Fixture* f_1 = cur_body->GetFixtureList();
+    for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
+      if (get_body_id(cur_body) == get_body_id(b) || get_body_id(b) < 0) 
 	continue;
-      }
-      b2Fixture* f_1 = cur_body->GetFixtureList();
-      b2Fixture* f_2 = bodies[i]->GetFixtureList();	      
-      bool overlap = b2TestOverlap(f_1->GetShape(), 0, f_2->GetShape(), 0,  cur_body->GetTransform(), bodies[i]->GetTransform());
+      b2Fixture* f_2 = b->GetFixtureList();
+      bool overlap = b2TestOverlap(f_1->GetShape(), 0, f_2->GetShape(), 0,  cur_body->GetTransform(), b->GetTransform());
       if (overlap)
 	return true;
     }
-    return false;
-  }
-	
-  void set_sensor_status(b2Body* body, bool isSensor) {
-    b2Fixture* fixture = body->GetFixtureList();
-    while (fixture != NULL)
-      {
-	fixture->SetSensor(isSensor);
-	fixture = fixture->GetNext();
-      }
-  }
+    return coll_check_with_robot_base(cur_body);
+}
+  
+void set_sensor_status(b2Body* body, bool isSensor) {
+  b2Fixture* fixture = body->GetFixtureList();
+  while (fixture != NULL)
+    {
+      fixture->SetSensor(isSensor);
+      fixture = fixture->GetNext();
+    }
+}
 	  	
   b2AABB get_aabb(b2Body* body) {
     b2AABB aabb;
@@ -474,20 +493,22 @@ class ApplyForce : public Test
     return global_hit;
   }
 
-  std::vector<b2Body*>  get_displaced_objects() {
-    std::vector<b2Body*> displaced_bodies;
-    for (unsigned int i=0; i < red_bodies.size(); i++)
-      {
-	if (!obj_goal_satisfied(red_goal_body, red_bodies[i])) {
-	  displaced_bodies.push_back(red_bodies[i]);
+  std::vector<int> get_displaced_objects() {
+    std::vector<int> displaced_bodies;
+    for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
+        if (get_body_id(b) < 0) {
+          continue;
+        }
+        b2Body* goal_body;
+	if (get_body_color(b) == "red")
+	  goal_body = red_goal_body;
+	else if (get_body_color(b) == "blue")
+	  goal_body = blue_goal_body;
+
+	if (!obj_goal_satisfied(goal_body, b)) {
+	  displaced_bodies.push_back(get_body_id(b));
 	}
-      }
-    for (unsigned int i=0; i < blue_bodies.size(); i++)
-      {
-	if (!obj_goal_satisfied(blue_goal_body, blue_bodies[i])) {
-	  displaced_bodies.push_back(blue_bodies[i]);
-	}
-      }
+      }    
     return displaced_bodies;
   }
   	
@@ -514,17 +535,23 @@ class ApplyForce : public Test
       {
 	if (get_body_color(b) == str_in) {
 	  result.push_back(b);
-	}	      
+	}
       }
     return result;
   }
-		
+
+  b2Body* get_object_from_id(int id) {
+    for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())
+      {
+	if (get_body_id(b) == id)
+	  return b;
+      }    
+  }
+  
   void setup_objects(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses, std::vector<std::string> colors, geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses)
   {
     this->centroids = centroids;
     this->colors = colors;
-    this->red_goal = red_goal;
-    this->blue_goal = blue_goal;
     this->goal_radiuses = goal_radiuses;
     setup_table(red_goal, blue_goal);
     draw_table(centroids, radiuses, colors, red_goal, blue_goal);
@@ -574,7 +601,7 @@ class ApplyForce : public Test
     b2EdgeShape shape;
     b2FixtureDef sd;
     sd.shape = &shape;
-    sd.friction = 10.0f;
+    sd.friction = 1.0f;
 	  
     double table_x_len = 1.5;
     double table_y_len = 0.8;
