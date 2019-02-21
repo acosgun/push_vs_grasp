@@ -11,7 +11,6 @@ import push_vs_grasp.msg
 
 class GenerateCylinders(object):
 
-    _result = push_vs_grasp.msg.GenerateCylindersResult()
     
     def __init__(self, name):        
         self.model_filename_obj_1 = rospy.get_param('~model_filename_obj_1')
@@ -42,6 +41,8 @@ class GenerateCylinders(object):
         
     def execute_cb(self, goal):
         print "GenerateCylinders execute_cb"
+
+        result = push_vs_grasp.msg.GenerateCylindersResult()
         
         num_objs = goal.num_objs
         min_x = goal.min_x
@@ -49,22 +50,20 @@ class GenerateCylinders(object):
         min_y = goal.min_y
         max_y = goal.max_y
 
-        obj_list = []
-        
+
         self.pause_physics()
     
-        while len(obj_list) < num_objs:
+        while len(result.centroids) < num_objs:
             import random
             x = random.uniform(min_x,max_x)
             y = random.uniform(min_y,max_y)
-            #z = 1.08
             z = 0.05
         
             #check collisions with others in the list
             collision = False
             coll_radius = 0.08
-            for j in obj_list:
-                if sqrt((j.x-x)**2 + (j.y-y)**2) < coll_radius:
+            for j in result.centroids:
+                if sqrt((j.point.x-x)**2 + (j.point.y-y)**2) < coll_radius:
                     collision = True
                     break
             
@@ -76,24 +75,26 @@ class GenerateCylinders(object):
                 import random
                 if random.random() > 0.5:
                     cur_xml = self.obj_xml_1
+                    result.colors.append("blue")
                 else:
                     cur_xml = self.obj_xml_2
+                    result.colors.append("red")
 
-                cur_model_name = self.model_name + str(len(obj_list))
+                cur_model_name = self.model_name + str(len(result.centroids))
                 self.delete_model(cur_model_name)
                 
                 #self.spawn_sdf_model(cur_model_name, cur_xml, "", item_pose, "table::link")
                 self.spawn_sdf_model(cur_model_name, cur_xml, "", item_pose, "robot::base_link")
                 
                 #add object to list
-                pt = geometry_msgs.msg.Point()
-                pt.x = x
-                pt.y = y
-                pt.z = z
-                obj_list.append(pt)
+                pt = geometry_msgs.msg.PointStamped()
+                pt.point.x = x
+                pt.point.y = y
+                pt.point.z = z
+                result.centroids.append(pt)
                 self.unpause_physics()    
-
-        self._as.set_succeeded(self._result)
+                
+        self._as.set_succeeded(result)
                 
 if __name__ == '__main__':
     rospy.init_node('generate_cylinders')

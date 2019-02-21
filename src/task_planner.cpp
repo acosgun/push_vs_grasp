@@ -81,8 +81,6 @@ int main (int argc, char **argv)
   push_vs_grasp::GenerateCylindersResult GenerateCylinders_Result = *GenerateCylinders_Action_client.getResult();
   actionlib::SimpleClientGoalState gen_state = GenerateCylinders_Action_client.getState();
   ROS_INFO("Generate Cylinders Action finished: %s", gen_state.toString().c_str());  
-
-  exit(0);
   
   while(true)
     {
