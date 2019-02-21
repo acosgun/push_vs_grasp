@@ -3,6 +3,9 @@
 #include <iostream>
 #include <time.h>       /* time */
 #include <boost/thread.hpp>
+#include <fstream>
+
+
 //ROS
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
@@ -23,6 +26,8 @@ float x_min =-0.2, x_max =0.2, y_min =-0.3, y_max =-0.55;
 float red_radius =0.10, blue_radius =0.10;
 float object_radius = 0.03;
 bool simulation = true, perfect_perception = true;
+std::string file_path = "/home/ecse-robotics-lab/results_log.csv";
+
 
 void spinThread()
 {
@@ -33,6 +38,22 @@ int main (int argc, char **argv)
 {
   ros::init(argc, argv, "push_client");
   srand (time(NULL));
+
+  // File for logging data
+  std::ofstream myfile;
+
+  myfile.open(file_path, std::ios_base::out | std::ios_base::in);  // will not create file
+  if (!myfile.is_open()){//File doesn't exist yet
+  	myfile.clear();
+    myfile.open(file_path, std::ios_base::out);  // will create if necessary
+    myfile << "Algorithm, Number of Objects, Time Elapsed, Number of Pick/Places, Number of Pushes, Successful";
+    
+  }
+
+  myfile.close();
+
+
+
 
   actionlib::SimpleActionClient<kinect_segmentation::ScanObjectsAction> ScanObjects_Action_client("scan_objects");
   actionlib::SimpleActionClient<push_vs_grasp::PlanAction> Plan_Action_client("box2d_planner");
@@ -163,6 +184,7 @@ int main (int argc, char **argv)
     */
     
     ros::Time t_start = ros::Time::now();
+    ros::Duration time_elapsed;
 
     while(true)
     { 
@@ -223,13 +245,7 @@ int main (int argc, char **argv)
       actionlib::SimpleClientGoalState plan_state = Plan_Action_client.getState();
       ROS_INFO("Plan Action finished: %s",plan_state.toString().c_str());
 
-      if (Plan_Result.goal_reached) {
-        ROS_INFO("Goal Reached..");
-        ros::Time t_end = ros::Time::now();
-        ROS_INFO("Time elapsed:");
-        std::cout << t_end - t_start;
-        break;
-      }
+      
       
       //PickPlace Action
 
@@ -246,10 +262,45 @@ int main (int argc, char **argv)
       pick_place_goal.action_type = Plan_Result.action_type;
       pick_place_goal.obj_centroid = Plan_Result.obj_centroid;
       pick_place_goal.placement = Plan_Result.placement;
+      pick_place_goal.goal_reached = Plan_Result.goal_reached;
       PickPlace_Action_client.sendGoal(pick_place_goal);
       bool pick_place_result = PickPlace_Action_client.waitForResult();
+
+      push_vs_grasp::PickPlaceResult Pick_Place_Result = *PickPlace_Action_client.getResult();
+      int num_picks = Pick_Place_Result.numPickPlaces;
+      int num_pushes = Pick_Place_Result.numPushes;
       actionlib::SimpleClientGoalState pick_place_state = PickPlace_Action_client.getState();
-      ROS_INFO("PickPlace Action finished: %s",pick_place_state.toString().c_str());      
+      ROS_INFO("PickPlace Action finished: %s",pick_place_state.toString().c_str());    
+
+
+      // Time elapsed
+      ros::Time t_end = ros::Time::now();
+      time_elapsed = t_end - t_start;
+
+      if (Plan_Result.goal_reached || time_elapsed >= ros::Duration(120)) {
+      	//Algorithms ==> 0 = pick/place only, push only, pick/place + push combination
+      	int algorithm = 0; 
+      	int numObjects = 5; 
+      	// Logging Data - appending to existing file
+      	myfile.open (file_path.c_str(), std::fstream::app);
+      	if(Plan_Result.goal_reached){// Successful
+      		myfile << "\n" << algorithm << "," << numObjects << "," << time_elapsed << "," << num_picks << "," << num_pushes << ", 1";
+      	}
+      	else{// Unsuccessful
+      		myfile << "\n" << algorithm << "," << numObjects << "," << time_elapsed << "," << num_picks << "," << num_pushes << ", 0";
+      	}
+      	myfile.close();
+
+        ROS_INFO("Goal Reached..");
+        ROS_INFO("Time elapsed:");
+        std::cout << time_elapsed;
+        ROS_INFO("Number of Pick and Places:");
+        std::cout << num_picks;
+        ROS_INFO("Number of Pushes:");
+        std::cout << num_pushes;
+        break;
+      }
+      
     }
 
   }

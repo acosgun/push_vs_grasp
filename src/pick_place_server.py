@@ -23,12 +23,14 @@ from gazebo_msgs.srv import *
 import time
 
 #CUSTOM
-from push_vs_grasp.msg import PickPlaceAction
+from push_vs_grasp.msg import PickPlaceAction, PickPlaceResult
 
 #GLOBAL VARIABLES
 gripperOffset = 0.3
 gripperOffset_sim = 0.32
 jump_threshold = 5
+
+
 class PickPlaceServer:
   def __init__(self):
     #Gazebo Simluation
@@ -48,6 +50,8 @@ class PickPlaceServer:
     self.obj_name ="n/a"
     self.obj_state = 'n/a'
 
+    self.numPushes = 0
+    self.numPickPlaces = 0
 
     self.home_pose = geometry_msgs.msg.Pose()
     self.Goal_pose = geometry_msgs.msg.Pose()
@@ -56,6 +60,8 @@ class PickPlaceServer:
 
     self.server = actionlib.SimpleActionServer('pick_place', PickPlaceAction, self.executeCB, False)
     rospy.loginfo("server ")
+    self._result = PickPlaceResult()
+
 
     self.init_home_pose()
     rospy.loginfo("init_home_pose ")
@@ -263,6 +269,7 @@ class PickPlaceServer:
 
   def Cartesian_To_Place(self):
     print("Place")
+    self.numPickPlaces = self.numPickPlaces + 1
     #print(self.Goal_pose.position.x)
     #print(self.Goal_pose.position.y)
     #print(self.Goal_pose.position.z)
@@ -371,6 +378,7 @@ class PickPlaceServer:
     
   def execute_push(self, pos):
     print('execute_push')
+    self.numPushes = self.numPushes + 1
     group = self.group
     waypoints = []
     wpose = group.get_current_pose().pose
@@ -485,6 +493,9 @@ class PickPlaceServer:
     print goal.placement.point
 
     
+      
+
+    
     if goal.action_type == 1: #Push Action
       [quat_1, quat_2] = self.compute_push_orientation(goal.obj_centroid.point, goal.placement.point)
       
@@ -494,7 +505,7 @@ class PickPlaceServer:
       if success:
         success = self.lift_ee_up()
         success = self.go_home()
-      self.server.set_succeeded()
+      
       return
     
     if(self.sim):
@@ -507,7 +518,18 @@ class PickPlaceServer:
       success = self.Cartesian_To_Place()
       success = self.go_home()
 
-    self.server.set_succeeded()
+    self._result.numPushes = self.numPushes
+    self._result.numPickPlaces = self.numPickPlaces
+
+    if(goal.goal_reached):
+      self.numPushes = 0
+      self.numPickPlaces = 0
+
+    self.server.set_succeeded(self._result)
+
+
+
+    #self.server.set_succeeded()
 
 if __name__ == '__main__':
   rospy.init_node('pick_place_server')
