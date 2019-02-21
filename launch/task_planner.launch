@@ -15,8 +15,11 @@
     <param name="blue_radius" value="0.1"/>
     <param name="object_radius" value="0.03"/>
         
-    <param name="num_obj_min" value="1"/>
-    <param name="num_obj_max" value="10"/>
+    <param name="num_obj_min" value="5"/>
+    <param name="num_obj_max" value="5"/>
     <param name="runs_per_obj" value="10"/>
+
+    <param name="timeout_secs" value="120"/>
+    <param name="log_folder" value="$(find push_vs_grasp)/log/"/>
   </node>
 </launch>
