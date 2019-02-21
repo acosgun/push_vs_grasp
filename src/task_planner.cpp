@@ -20,14 +20,12 @@
 #include <push_vs_grasp/PickPlaceAction.h>
 #include <push_vs_grasp/PickPlaceGoal.h>
 
+#include <push_vs_grasp/GenerateCylindersAction.h>
+#include <push_vs_grasp/GenerateCylindersGoal.h>
 
-// Global Variables
-float x_min =-0.2, x_max =0.2, y_min =-0.3, y_max =-0.55;
-float red_radius =0.10, blue_radius =0.10;
-float object_radius = 0.03;
-bool simulation = true, perfect_perception = true;
+bool simulation = true;
+bool perfect_perception = true;
 std::string file_path = "/home/ecse-robotics-lab/results_log.csv";
-
 
 void spinThread()
 {
@@ -37,6 +35,31 @@ void spinThread()
 int main (int argc, char **argv)
 {
   ros::init(argc, argv, "push_client");
+
+  ros::NodeHandle nh("~");
+  double obj_x_min; double obj_x_max; double obj_y_min; double obj_y_max;
+  double goal_x_min; double goal_x_max; double goal_y_min; double goal_y_max;
+  double red_radius; double blue_radius; double object_radius;
+  int num_obj_min; int num_obj_max; int runs_per_obj;
+
+  nh.getParam("obj_x_min", obj_x_min);
+  nh.getParam("obj_x_max", obj_x_max);
+  nh.getParam("obj_y_min", obj_y_min);
+  nh.getParam("obj_y_max", obj_y_max);
+
+  nh.getParam("goal_x_min", goal_x_min);
+  nh.getParam("goal_x_max", goal_x_max);
+  nh.getParam("goal_y_min", goal_y_min);
+  nh.getParam("goal_y_max", goal_y_max);
+
+  nh.getParam("red_radius", red_radius);
+  nh.getParam("blue_radius", blue_radius);
+  nh.getParam("object_radius", object_radius);
+  
+  nh.getParam("num_obj_min", num_obj_min);
+  nh.getParam("num_obj_max", num_obj_max);
+  nh.getParam("runs_per_obj", runs_per_obj);
+  
   srand (time(NULL));
 
   // File for logging data
@@ -44,7 +67,7 @@ int main (int argc, char **argv)
 
   myfile.open(file_path, std::ios_base::out | std::ios_base::in);  // will not create file
   if (!myfile.is_open()){//File doesn't exist yet
-  	myfile.clear();
+    myfile.clear();
     myfile.open(file_path, std::ios_base::out);  // will create if necessary
     myfile << "Algorithm, Number of Objects, Time Elapsed, Number of Pick/Places, Number of Pushes, Successful";
     
@@ -52,25 +75,30 @@ int main (int argc, char **argv)
 
   myfile.close();
 
-
-
-
   actionlib::SimpleActionClient<kinect_segmentation::ScanObjectsAction> ScanObjects_Action_client("scan_objects");
   actionlib::SimpleActionClient<push_vs_grasp::PlanAction> Plan_Action_client("box2d_planner");
   actionlib::SimpleActionClient<push_vs_grasp::PickPlaceAction> PickPlace_Action_client("pick_place");
+  actionlib::SimpleActionClient<push_vs_grasp::GenerateCylindersAction> GenerateCylinders_Action_client("generate_cylinders");
 
   boost::thread spin_thread(&spinThread);
 
-  ROS_INFO("Waiting for action Client to startup.");
-  ScanObjects_Action_client.waitForServer(); //will wait for infinite time
+  ROS_INFO("Waiting for ScanObjects action client.");
+  ScanObjects_Action_client.waitForServer();
   ROS_INFO("ScanObjects_Action_client started");
-  PickPlace_Action_client.waitForServer(); //will wait for infinite time
-  ROS_INFO("PickPlace_Action_client started");
-  Plan_Action_client.waitForServer(); //will wait for infinite time
-  ROS_INFO("Plan_Action_client started");
 
+  ROS_INFO("Waiting for PickPlace action client.");
+  PickPlace_Action_client.waitForServer();
+  ROS_INFO("PickPlace action client started");
+
+  ROS_INFO("Waiting for Plan action client.");  
+  Plan_Action_client.waitForServer();  
+  ROS_INFO("Plan action client started");
+
+  ROS_INFO("Waiting for Generate Cylinders action client.");
+  GenerateCylinders_Action_client.waitForServer();
+  ROS_INFO("Generate Cylinders action client started");  
+  
   bool plan_success = false;
-
 
   // Randomly generate goal regions and objects
   // Generation of goal regions
@@ -88,17 +116,11 @@ int main (int argc, char **argv)
   std::mt19937 gen(rd());
   // Distribution encompasses region projected by projector
   // Vertical Limits
-  std::uniform_real_distribution<> dist1(y_min, y_max); // Need to make table bigger in box2d and gazebo //REAL: (-0.17,-0.85);
+  std::uniform_real_distribution<> dist1(goal_y_min, goal_y_max); // Need to make table bigger in box2d and gazebo //REAL: (-0.17,-0.85);
   // Horizontal Limits
-  std::uniform_real_distribution<> dist2(x_min, x_max); // REAL: (-0.465, 0.75)
- 
- 
+  std::uniform_real_distribution<> dist2(goal_x_min, goal_x_max); // REAL: (-0.465, 0.75)
+  
   while(true){
-
-
-    // 
-
-
     // Random generation of goal regions
     bool goalCheck = 1;
 
@@ -122,7 +144,6 @@ int main (int argc, char **argv)
 
 
     // If perfect perception, read the positions of the objects directly rather than through perception
-
     
     /*
     // Random generation of objects
@@ -136,13 +157,13 @@ int main (int argc, char **argv)
 
     // Determining colours of objects
     for(int i = 0; i < numObjects; i++){
-      // Red = 0, Blue = 1
-      if(rand()%2){
-        colors.push_back("red");
-      }
-      else{
-        colors.push_back("blue");
-      }
+    // Red = 0, Blue = 1
+    if(rand()%2){
+    colors.push_back("red");
+    }
+    else{
+    colors.push_back("blue");
+    }
     }
 
     // Determining positions of objects
@@ -155,30 +176,30 @@ int main (int argc, char **argv)
     object_centroids.push_back(temp);
 
     while(objectCheck && object_centroids.size() < numObjects){ // Positions of objects
-      x1 = dist1(gen);
-      y1 = dist2(gen);
+    x1 = dist1(gen);
+    y1 = dist2(gen);
 
       
-      // Checking objects aren't overlapping
-      for(int i = 0; i < object_centroids.size(); i++){
-        // Ensuring collision free placement of objects
-        if(x1 > object_centroids[i].point.x + 2*object_radius || x1 < object_centroids[i].point.x - 2*object_radius || y1 < object_centroids[i].point.y - 2*object_radius || y1 > object_centroids[i].point.y + 2*object_radius){
-          if(i == object_centroids.size() - 1){ // If no collisions with other objects
+    // Checking objects aren't overlapping
+    for(int i = 0; i < object_centroids.size(); i++){
+    // Ensuring collision free placement of objects
+    if(x1 > object_centroids[i].point.x + 2*object_radius || x1 < object_centroids[i].point.x - 2*object_radius || y1 < object_centroids[i].point.y - 2*object_radius || y1 > object_centroids[i].point.y + 2*object_radius){
+    if(i == object_centroids.size() - 1){ // If no collisions with other objects
             
-            temp.point.x = x1;
-            temp.point.y = y1;
-            object_centroids.push_back(temp);  
-          }
-        }
-        else{
-          break;
-        }
+    temp.point.x = x1;
+    temp.point.y = y1;
+    object_centroids.push_back(temp);  
+    }
+    }
+    else{
+    break;
+    }
 
-        if(i >= numObjects - 1){ // if the position of all the objects have been successfully determined
-          objectCheck = false;
-          break;
-        }
-      }
+    if(i >= numObjects - 1){ // if the position of all the objects have been successfully determined
+    objectCheck = false;
+    break;
+    }
+    }
 
     }
     */
@@ -186,11 +207,23 @@ int main (int argc, char **argv)
     ros::Time t_start = ros::Time::now();
     ros::Duration time_elapsed;
 
-    while(true)
-    { 
+  //GenerateCylinders Action
+  push_vs_grasp::GenerateCylindersGoal gen_cylinders_goal;
+  gen_cylinders_goal.min_x = obj_x_min;
+  gen_cylinders_goal.max_x = obj_x_max;
+  gen_cylinders_goal.min_y = obj_y_min;
+  gen_cylinders_goal.max_y = obj_y_max;
 
-      
-
+  gen_cylinders_goal.num_objs = 5;
+  GenerateCylinders_Action_client.sendGoal(gen_cylinders_goal);  
+  bool gen_cylinders_result = GenerateCylinders_Action_client.waitForResult();
+  
+  push_vs_grasp::GenerateCylindersResult GenerateCylinders_Result = *GenerateCylinders_Action_client.getResult();
+  actionlib::SimpleClientGoalState gen_state = GenerateCylinders_Action_client.getState();
+  ROS_INFO("Generate Cylinders Action finished: %s", gen_state.toString().c_str());  
+  
+  while(true)
+    {
       //Scan Action
       kinect_segmentation::ScanObjectsGoal ScanObjects_goal;
       ScanObjects_goal.goal_reached = plan_success;
