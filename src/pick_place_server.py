@@ -25,11 +25,12 @@ import time
 #CUSTOM
 from push_vs_grasp.msg import PickPlaceAction, PickPlaceResult
 
-#GLOBAL VARIABLES
+#GLOBAL PARAMS
 gripperOffset = 0.3
 gripperOffset_sim = 0.32
 jump_threshold = 5
-
+max_num_objs = 10
+model_name = "unit_cylinder"
 
 class PickPlaceServer:
   def __init__(self):
@@ -84,7 +85,7 @@ class PickPlaceServer:
       self.sim = False
 
     scene = moveit_commander.PlanningSceneInterface("base_link")
-    time.sleep(2)
+    time.sleep(1)
     # Create table obstacle
     p = PoseStamped()
     p.header.frame_id = robot.get_planning_frame()
@@ -93,7 +94,7 @@ class PickPlaceServer:
     p.pose.position.y = 0
     p.pose.position.z = -0.03
     scene.add_box("table", p, (2, 2, 0.06))
-    time.sleep(2)
+    time.sleep(1)
 
     group_name = "manipulator"
     self.group_name = group_name
@@ -141,10 +142,8 @@ class PickPlaceServer:
     pose.position.z = 10.0
     state.pose = pose
     self.set_model_state(state)
-
+  
   def get_closest_object(self, closest_obj):
-    max_num_objs = 10
-    model_name = "unit_cylinder"
     import sys
     min_dist = sys.float_info.max
     final_name = 'n/a'
@@ -161,8 +160,10 @@ class PickPlaceServer:
           min_dist = dist
           final_response = response
           final_name = cur_obj_name
-    self.obj_name = final_name
-    self.obj_state = final_response
+          self.obj_name = final_name
+          self.obj_state = final_response
+      else:
+        break
 
   def place_object(self, obj_name):
     state = ModelState()
@@ -179,7 +180,7 @@ class PickPlaceServer:
     self.set_model_state(state)
 
   def init_gripper(self):
-    time.sleep(2)
+    time.sleep(1)
     self.Grip.rACT = 0
     self.Grip.rPR = 0
     self.Grip.rGTO = 0
@@ -187,7 +188,7 @@ class PickPlaceServer:
     self.Grip.rFR = 0
     self.Grip.rATR = 0
     self.pub.publish(self.Grip)
-    time.sleep(2)
+    time.sleep(1)
 
     self.Grip.rACT = 1
     self.Grip.rPR = 0
@@ -196,7 +197,7 @@ class PickPlaceServer:
     self.Grip.rFR = 150
     self.Grip.rATR = 0
     self.pub.publish(self.Grip)
-    time.sleep(2)
+    time.sleep(1)
 
   def init_home_pose(self):
     self.home_pose.position.x = -0.4
@@ -213,12 +214,12 @@ class PickPlaceServer:
   def Gripper_close(self):
     self.Grip.rPR = 100
     self.pub.publish(self.Grip)
-    time.sleep(2)
+    time.sleep(1)
 
   def Gripper_open(self):
     self.Grip.rPR = 50
     self.pub.publish(self.Grip)
-    time.sleep(2)
+    time.sleep(1)
 
   def Cartesian_To_Pick(self):
 
@@ -248,7 +249,7 @@ class PickPlaceServer:
     if (fraction == 1):
       success = True
       group.execute(plan)
-      time.sleep(1)
+      #time.sleep(1)
 
       if not self.sim:
           self.Gripper_close()
@@ -300,7 +301,7 @@ class PickPlaceServer:
     if (fraction == 1):
       success = True
       group.execute(plan)
-      time.sleep(1)
+      #time.sleep(1)
 
       if not self.sim:
         self.Gripper_open()
@@ -378,7 +379,6 @@ class PickPlaceServer:
     
   def execute_push(self, pos):
     print('execute_push')
-    self.numPushes = self.numPushes + 1
     group = self.group
     waypoints = []
     wpose = group.get_current_pose().pose
@@ -477,26 +477,16 @@ class PickPlaceServer:
     
   def executeCB(self, goal):
     rospy.loginfo("executeCB: PickPlaceAction")
-         
+      
     self.Target_pose.position.x = goal.obj_centroid.point.x
     self.Target_pose.position.y = goal.obj_centroid.point.y
     self.Target_pose.position.z = goal.obj_centroid.point.z
 
     self.Goal_pose.position.x = goal.placement.point.x
     self.Goal_pose.position.y = goal.placement.point.y
-    self.Goal_pose.position.z = goal.placement.point.z
-
-    print "Start: "
-    print goal.obj_centroid.point
-
-    print "End: " 
-    print goal.placement.point
-
+    self.Goal_pose.position.z = goal.placement.point.z          
     
-      
-
-    
-    if goal.action_type == 1: #Push Action
+    if goal.action_type == 0: #Push Action
       [quat_1, quat_2] = self.compute_push_orientation(goal.obj_centroid.point, goal.placement.point)
       
       success = self.go_to_pre_push_pose(goal.obj_centroid.point, quat_1, quat_2)
@@ -518,18 +508,8 @@ class PickPlaceServer:
       success = self.Cartesian_To_Place()
       success = self.go_home()
 
-    self._result.numPushes = self.numPushes
-    self._result.numPickPlaces = self.numPickPlaces
-
-    if(goal.goal_reached):
-      self.numPushes = 0
-      self.numPickPlaces = 0
-
     self.server.set_succeeded(self._result)
 
-
-
-    #self.server.set_succeeded()
 
 if __name__ == '__main__':
   rospy.init_node('pick_place_server')

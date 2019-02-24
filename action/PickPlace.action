@@ -1,12 +1,9 @@
 # Define the goal
-bool goal_reached
 geometry_msgs/PointStamped obj_centroid
 geometry_msgs/PointStamped placement
 int32 action_type
 ---
 # Define the result
 uint32 result
-uint32 numPushes
-uint32 numPickPlaces
 ---
 # Define a feedback message

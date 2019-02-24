@@ -28,6 +28,7 @@ class Box2DPlanner: public Test
   ros::NodeHandle nh_;
   actionlib::SimpleActionServer<push_vs_grasp::PlanAction> as_;
   bool virgin = true;
+  bool enable_draw = false;
   
   void init_actionlib(){
     as_.start();
@@ -50,7 +51,7 @@ class Box2DPlanner: public Test
     geometry_msgs::PointStamped placement;
     bool goal_reached;
     int action_type;
-    test_derived->plan(obj_centroid, placement, goal_reached, action_type);
+    test_derived->plan(obj_centroid, placement, goal_reached, action_type, enable_draw, goal->algo);
 
     
     push_vs_grasp::PlanResult result_;
@@ -63,7 +64,8 @@ class Box2DPlanner: public Test
 
  public:  
  Box2DPlanner(ros::NodeHandle* nodehandle): virgin(true), nh_(*nodehandle), as_(nh_, "/box2d_planner", boost::bind(&Box2DPlanner::executeCB, this, _1),false) {
-    init_actionlib();
+   nh_.getParam("enable_draw", enable_draw);
+   init_actionlib();
   }
   
     ~Box2DPlanner() {

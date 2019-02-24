@@ -327,7 +327,7 @@ Visualization Manager:
       Marker Topic: /scan_objects/object_markers
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -335,7 +335,15 @@ Visualization Manager:
       Marker Topic: /scan_objects/goal_markers
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /scan_objects/goal_markers
+      Name: MarkerArray
+      Namespaces:
+        {}
       Queue Size: 100
       Value: true
   Enabled: true

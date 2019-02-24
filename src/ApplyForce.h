@@ -237,9 +237,8 @@ class ApplyForce : public Test
     return dist;
   }
 
-  void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached, int& action_type)
+  void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached, int& action_type, bool enable_draw, int algo)
   {    
-    bool enable_draw = false;
     double padding_for_gripper = 0.04;
 
     red_goal_body = get_objects(red_goal_str)[0];
@@ -253,13 +252,22 @@ class ApplyForce : public Test
       return;
     }
 
-    //1 = push. 2 = pick&place
+    /*
+    //0 = push. 1 = pick&place
     if (rand() % 2 == 0)
-      action_type = 1; 
+      action_type = 0; 
     else
-      action_type = 2;
-          
-    if (action_type == 1) {
+      action_type = 1;
+    */
+
+    if (algo == 0)
+      action_type = 1;
+    else if (algo == 1)
+      action_type = 0;
+    
+
+
+    if (action_type == 0) {
       //Algo: greedy search for 1 goal-oriented push per object
       WorldState state = save_world();
       std::vector<double> heuristics;
@@ -305,12 +313,12 @@ class ApplyForce : public Test
       std::cout << push_end_y<< std::endl;
       */
 
-      simulate_push(displaced_bodies[min_index], true, true);
+      simulate_push(displaced_bodies[min_index], true, enable_draw);
       load_world(state);      
       
       return;
     }
-    else if (action_type == 2) {
+    else if (action_type == 1) {
 
     }
     else {

@@ -3,9 +3,11 @@
 
   <arg name="sim" default="true" />
   <param name ="/sim" value="$(arg sim)" />
-  <arg name="perfect_perception" default="false" />
+  <arg name="perfect_perception" default="true" />
   <param name ="/perfect_perception" value="$(arg perfect_perception)" />
 
+  <arg name="enable_rviz" default="false" />
+  
   <arg name="robot_ip" unless="$(arg sim)"  default ="10.0.0.99"/>
   <arg name="debug" default="false" />
   <arg name="limited" default="true" />
@@ -30,9 +32,8 @@
   <arg name="y_max" value="-0.55"/>
 
   <!-- Goal Region Radiuses -->
-  <arg name="red_radius" value="0.10"/>
-  <arg name="blue_radius" value="0.10"/>
-
+  <arg name="red_radius" value="0.15"/>
+  <arg name="blue_radius" value="0.15"/>
 
   <!-- simulation -->
   <group if="$(arg sim)">
@@ -81,7 +82,6 @@
     <!--camera_link   /camera/depth_registered/points-->
     <include file="$(find kinect_segmentation)/launch/segment_tabletop.launch">
       <arg name="sim" value="$(arg sim)"/>
-      <arg name="perfect_perception" value="$(arg perfect_perception)"/>
       <arg name="point_cloud_topic" value="/kinect2/hd/points"/>
       <arg name="x_min" value ="$(arg x_min)"/>
       <arg name="x_max" value ="$(arg x_max)"/>
@@ -111,8 +111,10 @@
   </include>
 
   <!-- rviz -->
-  <include file="$(find push_vs_grasp)/launch/rviz.launch">
-    <arg name="config" default="true"/>
-  </include>
+  <group if="$(arg enable_rviz)">
+    <include file="$(find push_vs_grasp)/launch/rviz.launch">
+      <arg name="config" default="true"/>
+    </include>
+  </group>
 
 </launch>

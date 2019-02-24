@@ -5,6 +5,7 @@ string[] colors
 float64[] goal_radiuses
 geometry_msgs/PointStamped red_goal
 geometry_msgs/PointStamped blue_goal
+int32 algo
 ---
 # Define the result
 bool goal_reached

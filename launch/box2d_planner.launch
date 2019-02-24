@@ -1,4 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <node pkg="push_vs_grasp" name="box2d_planner_server" type="box2d_planner_server" output="screen"/>
+  <node pkg="push_vs_grasp" name="box2d_planner_server" type="box2d_planner_server" output="screen">
+    <param name="enable_draw" value="false"/>
+  </node>
 </launch>

@@ -4,10 +4,15 @@ float32 max_x
 float32 min_y
 float32 max_y
 int32 num_objs
-
+geometry_msgs/PointStamped red_goal
+geometry_msgs/PointStamped blue_goal
+float64 red_radius
+float64 blue_radius
+bool get_perfect_perception
 ---
 # Define the result
 geometry_msgs/PointStamped[] centroids
+float64[] radiuses
 string[] colors
 
 ---
