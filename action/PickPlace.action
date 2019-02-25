@@ -4,6 +4,6 @@ geometry_msgs/PointStamped placement
 int32 action_type
 ---
 # Define the result
-uint32 result
+float64 fraction
 ---
 # Define a feedback message

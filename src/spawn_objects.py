@@ -103,10 +103,11 @@ class GenerateCylinders(object):
             else:
                 num_blue = round(math.floor(float(num_objs)/2))
                 
-        print "num_objs: " + str(num_objs)
-        print "num_blue: " + str(num_blue)
+        #print "num_objs: " + str(num_objs)
+        #print "num_blue: " + str(num_blue)
 
         self.pause_physics()
+        
         while len(result.centroids) < num_objs:
             import random
             x = random.uniform(min_x,max_x)
@@ -114,24 +115,30 @@ class GenerateCylinders(object):
             z = 0.05
         
             #check collisions with others in the list
-            coll_radius = 0.08
+            coll_radius = 2*object_radius
+            in_collision = False
             for j in result.centroids:
                 if sqrt((j.point.x-x)**2 + (j.point.y-y)**2) < coll_radius:
+                    in_collision = True
                     continue
-                                            
+
+            if in_collision:
+                continue
+                
             if len(result.centroids) < num_blue:                                
                 cur_xml = self.obj_xml_1
                 if sqrt((goal.blue_goal.point.x - x)**2 +(goal.blue_goal.point.y - y)**2) < (goal.blue_radius + object_radius):
                     continue
-                result.colors.append("blue")
+                else:
+                    result.colors.append("blue")
             else:
                 cur_xml = self.obj_xml_2
                 if sqrt((goal.red_goal.point.x - x)**2 + (goal.red_goal.point.y - y)**2) < (goal.red_radius + object_radius):
                     continue
-                result.colors.append("red")
+                else:
+                    result.colors.append("red")
                     
             cur_model_name = self.model_name + str(len(result.centroids))
-
 
             self.delete_model(cur_model_name)
             item_pose = Pose(Point(x,y,z), Quaternion(0,0,0,0))

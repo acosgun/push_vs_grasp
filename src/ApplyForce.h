@@ -11,6 +11,9 @@
 #include <ros/ros.h>
 #include <geometry_msgs/PointStamped.h>
 
+//UR Kinematics
+#include "ur_kin.h"
+
 struct BodyState {
   b2Vec2 position;
   double radius;
@@ -149,7 +152,7 @@ class ApplyForce : public Test
     linear_velocity.y = diff_y*coeff;
     return linear_velocity;
   }
-
+    
   double calc_angle(b2Body* b_from, b2Body* b_to) {
     double diff_x = b_from->GetPosition().x - b_to->GetPosition().x;
     double diff_y = b_from->GetPosition().y - b_to->GetPosition().y;
@@ -237,7 +240,79 @@ class ApplyForce : public Test
     return dist;
   }
 
-  void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached, int& action_type, bool enable_draw, int algo)
+  void to_mat44(double * mat4_4, const double* eetrans, const double* eerot)
+  {
+    for(int i=0; i< 3;++i)
+      {
+	mat4_4[i*4+0] = eerot[i*3+0];
+	mat4_4[i*4+1] = eerot[i*3+1];
+	mat4_4[i*4+2] = eerot[i*3+2];
+	mat4_4[i*4+3] = eetrans[i];
+      }
+    
+    mat4_4[3*4+0] = 0;
+    mat4_4[3*4+1] = 0;
+    mat4_4[3*4+2] = 0;
+    mat4_4[3*4+3] = 1;
+  }
+
+  
+  double check_push_feasibility(PushDef p)
+  {
+    double ratio_jumps = 0.05;
+
+    double diff_x = p.push_end.x - p.push_start.x;
+    double diff_y = p.push_end.y - p.push_start.y;
+    double angle =  atan2(diff_y, diff_x) + M_PI/2;  	
+    
+    for (double ratio = 0.0; ratio <= 1.0; ratio = ratio + ratio_jumps)
+      {
+	double x_box2d_frame = p.push_start.x * (ratio) + p.push_end.x * (1-ratio);
+	double y_box2d_frame = p.push_start.y * (ratio) + p.push_end.y * (1-ratio);
+	
+	double x_robot_frame; double y_robot_frame;
+	box2d_to_robot_frame(x_box2d_frame, y_box2d_frame, x_robot_frame , y_robot_frame);	
+
+	double T[16];
+	double eetrans[3];
+	eetrans[0] = x_robot_frame;
+	eetrans[1] = y_robot_frame;
+	eetrans[2] = 0.07;
+
+	double eerot[9];
+	//Roll
+	eerot[0] = 1.0;
+	eerot[3] = 0.0;
+	eerot[6] = 0.0;
+
+	//Pitch
+	eerot[1] = 0.0;
+	eerot[4] = 1.0;
+	eerot[7] = 0.0;
+	
+	//Yaw
+	//eerot[2] = 0.0;
+	//eerot[5] = 0.0;
+	//eerot[8] = 1.0;
+
+	eerot[2] = cos(angle);
+	eerot[5] = sin(angle);
+	eerot[8] = 1.0;
+	
+	to_mat44(T, eetrans, eerot);
+
+	double q_sols[8*6];
+	double q6_des;
+	int num_sols = ur_kinematics::inverse(T, q_sols, q6_des);
+
+	//std::cout << "Ratio: " << ratio << " , num_sols: "  << num_sols << std::endl;	
+	if (num_sols <= 0)	  
+	  return std::max(0.0, ratio - ratio_jumps);
+      }            
+    return 1.0;
+  }
+  
+  void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached, int& action_type, bool enable_draw, int algo, double& fraction)
   {    
     double padding_for_gripper = 0.04;
 
@@ -245,7 +320,7 @@ class ApplyForce : public Test
     blue_goal_body = get_objects(blue_goal_str)[0];
     
     std::vector<int> displaced_bodies = get_displaced_objects();
-    std::cout << "---- # displaced_bodies: " << displaced_bodies.size() << std::endl;
+    //std::cout << "---- # displaced_bodies: " << displaced_bodies.size() << std::endl;
 
     if (displaced_bodies.empty()) {
       goal_reached = true;
@@ -261,11 +336,9 @@ class ApplyForce : public Test
     */
 
     if (algo == 0)
-      action_type = 1;
-    else if (algo == 1)
       action_type = 0;
-    
-
+    else if (algo == 1)
+      action_type = 1;    
 
     if (action_type == 0) {
       //Algo: greedy search for 1 goal-oriented push per object
@@ -275,12 +348,12 @@ class ApplyForce : public Test
       double min_heuristic = -DBL_MAX;
       PushDef min_push_def;
       double heuristic = calc_heuristic();
-      std::cout<<"heur INIT: " << heuristic <<std::endl;
+      //std::cout<<"heur INIT: " << heuristic <<std::endl;
 
       for (unsigned int i = 0; i < displaced_bodies.size(); i++) {
 	PushDef push_def = simulate_push(displaced_bodies[i], true, enable_draw);
 	double heuristic = calc_heuristic();
-	std::cout<<"heur[" << i<< "]: " << heuristic <<std::endl;
+	//std::cout<<"heur[" << i<< "]: " << heuristic <<std::endl;
 	//print_push_def(push_def);
 	heuristics.push_back(heuristic);      
 	push_defs.push_back(push_def);
@@ -313,6 +386,8 @@ class ApplyForce : public Test
       std::cout << push_end_y<< std::endl;
       */
 
+      fraction = check_push_feasibility(min_push_def);
+      
       simulate_push(displaced_bodies[min_index], true, enable_draw);
       load_world(state);      
       

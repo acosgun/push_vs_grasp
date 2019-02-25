@@ -3,6 +3,7 @@
 #include <iostream>
 #include <time.h>
 #include <boost/thread.hpp>
+#include <boost/format.hpp>
 #include <fstream>
 
 //ROS
@@ -164,7 +165,7 @@ int main (int argc, char **argv)
 	      bool gen_cylinders_result = GenerateCylinders_Action_client.waitForResult();  
 	      push_vs_grasp::GenerateCylindersResult GenerateCylinders_Result = *GenerateCylinders_Action_client.getResult();
 	      actionlib::SimpleClientGoalState gen_state = GenerateCylinders_Action_client.getState();
-	      ROS_INFO("Generate Cylinders Action finished: %s", gen_state.toString().c_str());
+	      //ROS_INFO("Generate Cylinders Action finished: %s", gen_state.toString().c_str());
 
 	      ros::Duration time_elapsed;    
 	      ros::Time t_start = ros::Time::now();
@@ -195,7 +196,7 @@ int main (int argc, char **argv)
 		      Scan_Result.centroids = perf_perception_result.centroids;
 		      Scan_Result.radiuses = GenerateCylinders_Result.radiuses;
 		      Scan_Result.colors = GenerateCylinders_Result.colors;
-		      ROS_INFO("Perfect Perception SUCCEEDED");
+		      //ROS_INFO("Perfect Perception SUCCEEDED");
 		    }
 		  else
 		    {
@@ -204,7 +205,7 @@ int main (int argc, char **argv)
 		      ScanObjects_Action_client.waitForResult();
 		      Scan_Result = *ScanObjects_Action_client.getResult();
 		      actionlib::SimpleClientGoalState scan_state = ScanObjects_Action_client.getState();
-		      ROS_INFO("Scan Action finished: %s",scan_state.toString().c_str());
+		      //ROS_INFO("Scan Action finished: %s",scan_state.toString().c_str());
 		    }
 
 		  if (Scan_Result.centroids.empty()){
@@ -226,9 +227,9 @@ int main (int argc, char **argv)
 		  push_vs_grasp::PlanResult Plan_Result = *Plan_Action_client.getResult();
 		  plan_success = Plan_Result.goal_reached;
 		  actionlib::SimpleClientGoalState plan_state = Plan_Action_client.getState();
-		  ROS_INFO("Plan Action finished: %s",plan_state.toString().c_str());
+		  //ROS_INFO("Plan Action finished: %s",plan_state.toString().c_str());
 
-		  break;		  
+		  std::cout << "Plan Push Fraction: " << Plan_Result.fraction << std::endl;
 		  
 		  //PickPlace Action
 		  push_vs_grasp::PickPlaceGoal pick_place_goal;		  
@@ -240,7 +241,10 @@ int main (int argc, char **argv)
 		  bool pick_place_result = PickPlace_Action_client.waitForResult();
 		  push_vs_grasp::PickPlaceResult Pick_Place_Result = *PickPlace_Action_client.getResult();
 		  actionlib::SimpleClientGoalState pick_place_state = PickPlace_Action_client.getState();
-		  ROS_INFO("PickPlace Action finished: %s",pick_place_state.toString().c_str());
+		  //ROS_INFO("PickPlace Action finished: %s",pick_place_state.toString().c_str());
+
+		  std::cout << "Real Push Fraction: " << Pick_Place_Result.fraction << std::endl;
+		    
 		  if (pick_place_state == actionlib::SimpleClientGoalState::SUCCEEDED)
 		    {
 		      if (pick_place_goal.action_type == 0) {
@@ -254,12 +258,16 @@ int main (int argc, char **argv)
 		  // Time elapsed
 		  ros::Time t_end = ros::Time::now();
 		  time_elapsed = t_end - t_start;
-
 		  bool timeout = time_elapsed >= ros::Duration(timeout_secs);
 	      
 		  if (Plan_Result.goal_reached || timeout) {
 		
 		    //TODO: check actual sim result?
+		    if (sim)
+		      {
+			
+		      }
+		    
 		    bool task_success = false;
 		    if (Plan_Result.goal_reached) {
 		      task_success = true;
@@ -270,14 +278,12 @@ int main (int argc, char **argv)
 		      myfile << "\n" << num_obj << "," << num_run << "," << algo << "," << task_success << "," << time_elapsed << "," << num_picks << "," << num_pushes;
 		      myfile.close();
 		    }
-		    std::cout << "--- Run #: ---" << num_run << std::endl;
-		    std::cout << "# Objects: " << num_obj << std::endl;		    
-		    std::cout << "Algo Choice: " << algo << std::endl;
-		    std::cout << " # Pushes: " << num_pushes << std::endl;
-		    std::cout << " # Picks : " << num_picks << std::endl;
-		    std::cout << "Success: " << task_success << std::endl;
-		    std::cout << " Time: " << time_elapsed << std::endl;
-		    std::cout << "--- Run #: ---" << num_run << std::endl;
+		    std::cout << "--- Run #" << num_run << std::endl;
+		    std::cout << " Success: " << task_success << std::endl;
+		    printf (" Time Elapsed: %4.2f\n", time_elapsed.toSec());
+		    std::cout << " # Objects: " << num_obj << ", Algo: " << algo << ", # Pushes: " << num_pushes << ", # Picks : " << num_picks << std::endl;
+		    std::cout << "---------" <<std::endl;
+
 		    break;
 		  }
 		}

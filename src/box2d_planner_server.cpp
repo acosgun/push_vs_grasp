@@ -51,14 +51,16 @@ class Box2DPlanner: public Test
     geometry_msgs::PointStamped placement;
     bool goal_reached;
     int action_type;
-    test_derived->plan(obj_centroid, placement, goal_reached, action_type, enable_draw, goal->algo);
-
+    double fraction;
+    
+    test_derived->plan(obj_centroid, placement, goal_reached, action_type, enable_draw, goal->algo, fraction);
     
     push_vs_grasp::PlanResult result_;
     result_.obj_centroid = obj_centroid;
     result_.placement = placement;
     result_.goal_reached = goal_reached;
     result_.action_type = action_type;
+    result_.fraction = fraction;
     as_.setSucceeded(result_);
   }
 

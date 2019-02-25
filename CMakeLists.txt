@@ -174,7 +174,7 @@ source_group(Framework FILES ${Testbed_Framework_SRCS2})
 ## The recommended prefix ensures that target names across packages don't collide
 
 add_executable(task_planner src/task_planner.cpp)
-add_executable(box2d_planner_server src/box2d_planner_server.cpp ${Testbed_Framework_SRCS2})
+add_executable(box2d_planner_server src/box2d_planner_server.cpp ${Testbed_Framework_SRCS2} src/ur_kin.cpp src/ur_kin.cpp src/ur_kin.h src/ikfast.h)
 
 
 ## Rename C++ executable without prefix

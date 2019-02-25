@@ -61,8 +61,6 @@ class PickPlaceServer:
 
     self.server = actionlib.SimpleActionServer('pick_place', PickPlaceAction, self.executeCB, False)
     rospy.loginfo("server ")
-    self._result = PickPlaceResult()
-
 
     self.init_home_pose()
     rospy.loginfo("init_home_pose ")
@@ -390,13 +388,13 @@ class PickPlaceServer:
                                        waypoints,   # waypoints to follow
                                        0.01,        # eef_step
                                        jump_threshold,         # jump_threshold
-                                       True)
-    
+                                       True)    
+
     success = False    
     if fraction > 0:
       success = True
       group.execute(plan)
-    return success    
+    return fraction
 
   
   def go_to_pre_push_pose(self, pos, quat_1, quat_2):
@@ -485,30 +483,43 @@ class PickPlaceServer:
     self.Goal_pose.position.x = goal.placement.point.x
     self.Goal_pose.position.y = goal.placement.point.y
     self.Goal_pose.position.z = goal.placement.point.z          
+
+    result = PickPlaceResult()
+    result.fraction = 0.0
     
     if goal.action_type == 0: #Push Action
-      [quat_1, quat_2] = self.compute_push_orientation(goal.obj_centroid.point, goal.placement.point)
-      
+      [quat_1, quat_2] = self.compute_push_orientation(goal.obj_centroid.point, goal.placement.point)      
       success = self.go_to_pre_push_pose(goal.obj_centroid.point, quat_1, quat_2)
+
       if success:
-        success = self.execute_push(goal.placement.point)
-      if success:
-        success = self.lift_ee_up()
-        success = self.go_home()
-      
-      return
+        fraction = self.execute_push(goal.placement.point)
+        if fraction > 0:
+          result.fraction = fraction
+          success = self.lift_ee_up()
+          success = self.go_home()
+        else:
+          print "execute_push FAILED"
+          result.fraction = 0.0
+      else:
+        print "go_to_pre_push_pose FAILED"
+        result.fraction = 0.0
+                
+      self.server.set_succeeded(result)
+
+    elif goal.action_type == 1: # Pick Action
     
-    if(self.sim):
-      #Associate the centroid with one of the cylindrical objects in Gazebo
-      self.get_closest_object(goal.obj_centroid.point)
+      if(self.sim):
+        #Associate the centroid with one of the cylindrical objects in Gazebo
+        self.get_closest_object(goal.obj_centroid.point)
 
-    success = self.Cartesian_To_Pick()
+        success = self.Cartesian_To_Pick()
 
-    if(success):
-      success = self.Cartesian_To_Place()
-      success = self.go_home()
+        if(success):
+          success1 = self.Cartesian_To_Place()
+          success2 = self.go_home()
 
-    self.server.set_succeeded(self._result)
+        result.fraction = 1.0
+        self.server.set_succeeded(result)
 
 
 if __name__ == '__main__':
