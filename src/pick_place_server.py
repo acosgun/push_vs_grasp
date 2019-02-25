@@ -497,14 +497,17 @@ class PickPlaceServer:
           result.fraction = fraction
           success = self.lift_ee_up()
           success = self.go_home()
+          self.server.set_succeeded(result)
         else:
           print "execute_push FAILED"
           result.fraction = 0.0
+          self.server.set_aborted(result)
       else:
         print "go_to_pre_push_pose FAILED"
         result.fraction = 0.0
+        self.server.set_aborted(result)
                 
-      self.server.set_succeeded(result)
+
 
     elif goal.action_type == 1: # Pick Action
     
