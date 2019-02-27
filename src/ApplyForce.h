@@ -267,6 +267,7 @@ class ApplyForce : public Test
     
     for (double ratio = 0.0; ratio <= 1.0; ratio = ratio + ratio_jumps)
       {
+	
 	double x_box2d_frame = p.push_start.x * (ratio) + p.push_end.x * (1-ratio);
 	double y_box2d_frame = p.push_start.y * (ratio) + p.push_end.y * (1-ratio);
 	
@@ -280,6 +281,7 @@ class ApplyForce : public Test
 	eetrans[2] = 0.07;
 
 	double eerot[9];
+
 	//Roll
 	eerot[0] = 1.0;
 	eerot[3] = 0.0;
@@ -297,7 +299,7 @@ class ApplyForce : public Test
 
 	eerot[2] = cos(angle);
 	eerot[5] = sin(angle);
-	eerot[8] = 1.0;
+	eerot[8] = 0.0;
 	
 	to_mat44(T, eetrans, eerot);
 

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="sim" default="true" />
+
+  <include file="$(find push_vs_grasp)/launch/box2d_planner.launch"/>
+
+  <include file="$(find push_vs_grasp)/launch/pick_place.launch">
+	<arg name="sim" value="$(arg sim)"/>
+  </include>
+
+  <group if="$(arg sim)">
+  	 <include file="$(find push_vs_grasp)/launch/spawn_objects.launch"/>
+  </group>
+</launch>

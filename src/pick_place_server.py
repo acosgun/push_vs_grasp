@@ -28,8 +28,9 @@ from push_vs_grasp.msg import PickPlaceAction, PickPlaceResult
 #GLOBAL PARAMS
 gripperOffset = 0.3
 gripperOffset_sim = 0.32
-jump_threshold = 5
+jump_threshold = 5 #5
 max_num_objs = 10
+eef_step = 0.01
 model_name = "unit_cylinder"
 
 class PickPlaceServer:
@@ -75,6 +76,8 @@ class PickPlaceServer:
 
     robot = moveit_commander.RobotCommander()
 
+    print "self.sim: "  + str(self.sim)
+    
     if self.sim == "true":
       self.sim = True
       self.gripper_offset = gripperOffset_sim
@@ -83,7 +86,9 @@ class PickPlaceServer:
       self.sim = False
 
     scene = moveit_commander.PlanningSceneInterface("base_link")
-    time.sleep(1)
+
+    #time.sleep(1)
+
     # Create table obstacle
     p = PoseStamped()
     p.header.frame_id = robot.get_planning_frame()
@@ -92,7 +97,7 @@ class PickPlaceServer:
     p.pose.position.y = 0
     p.pose.position.z = -0.03
     scene.add_box("table", p, (2, 2, 0.06))
-    time.sleep(1)
+    #time.sleep(1)
 
     group_name = "manipulator"
     self.group_name = group_name
@@ -118,7 +123,6 @@ class PickPlaceServer:
   def init_gazebo(self):
 
     if(self.sim):
-      #time.sleep(5)
       rospy.wait_for_service("gazebo/get_model_state")
       rospy.wait_for_service("gazebo/set_model_state")
       self.get_model_state = rospy.ServiceProxy("/gazebo/get_model_state", GetModelState)
@@ -205,7 +209,7 @@ class PickPlaceServer:
     self.home_pose.orientation.x = -0.707106781
     self.home_pose.orientation.y = 0
     self.home_pose.orientation.z = 0.707106781
-
+    
     self.Target_pose = copy.deepcopy(self.home_pose)
     self.Goal_pose   = copy.deepcopy(self.home_pose)
 
@@ -239,7 +243,7 @@ class PickPlaceServer:
 
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
-                                       0.01,        # eef_step
+                                       eef_step,        # eef_step
                                        jump_threshold,         # jump_threshold
                                        True)
     success = False
@@ -247,7 +251,6 @@ class PickPlaceServer:
     if (fraction == 1):
       success = True
       group.execute(plan)
-      #time.sleep(1)
 
       if not self.sim:
           self.Gripper_close()
@@ -290,7 +293,7 @@ class PickPlaceServer:
 
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
-                                       0.01,        # eef_step
+                                       eef_step,        # eef_step
                                        jump_threshold,         # jump_threshold
                                        True)
 
@@ -316,57 +319,37 @@ class PickPlaceServer:
 
     return success
 
-
   def go_home(self):
     print("go_home")
-    #print("x", self.home_pose.position.x)
-    #print("y", self.home_pose.position.y)
-
     group = self.group
 
     waypoints = []
-    #wpose = group.get_current_pose().pose
-
-    #wpose.position.y = 0.1
-    #wpose.position.z = 0.4
-    #waypoints.append(copy.deepcopy(wpose))
-
-    #wpose.position.x = self.home_pose.position.x
-    #waypoints.append(copy.deepcopy(wpose))
-
     wpose = self.home_pose
     waypoints.append(copy.deepcopy(wpose))
 
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
-                                       0.01,        # eef_step
+                                       eef_step,        # eef_step
                                        jump_threshold,         # jump_threshold
                                        True)
 
     success = False
-    #print(fraction)
-
-    # Plan the trajectory
-    if (fraction == 1):
+    if (fraction > 0):
       success = True
-      #print("Home")
-
       group.execute(plan)
-      #time.sleep(1)
-
     return success
 
-  def lift_ee_up(self):
+  def lift_ee_up(self, delta):
     print('lift_ee_up')
     group = self.group
     waypoints = []
     wpose = group.get_current_pose().pose
-    wpose.position.z = wpose.position.z + 0.1
+    wpose.position.z = wpose.position.z + delta
     waypoints.append(copy.deepcopy(wpose))
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
-                                       0.01,        # eef_step
-                                       0.0,         # jump_threshold
+                                       eef_step,        # eef_step
+                                       jump_threshold,         # jump_threshold
                                        True)
     success = False    
     if fraction > 0:
@@ -386,7 +369,7 @@ class PickPlaceServer:
     
     (plan, fraction) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
-                                       0.01,        # eef_step
+                                       eef_step,        # eef_step
                                        jump_threshold,         # jump_threshold
                                        True)    
 
@@ -396,58 +379,67 @@ class PickPlaceServer:
       group.execute(plan)
     return fraction
 
-  
-  def go_to_pre_push_pose(self, pos, quat_1, quat_2):
-    print('go_to_pre_push_pose')
-    group = self.group
 
-    waypoints = []        
-    wpose = geometry_msgs.msg.Pose()
-    wpose.position.x = pos.x
-    wpose.position.y = pos.y
-    wpose.position.z = 0.2
+  def get_cartesian_plan(self, pos, quat_1):
+    group = self.group
+    z_high = 0.15
+    z_low = 0.07
+
+    waypoints = []
+
+    # WP 1
+    wpose = group.get_current_pose().pose
     wpose.orientation.x = quat_1[0]
     wpose.orientation.y = quat_1[1]
     wpose.orientation.z = quat_1[2]
     wpose.orientation.w = quat_1[3]
+    #waypoints.append(copy.deepcopy(wpose))
+    
+    # WP 2
+    wpose.position.x = pos.x
+    wpose.position.y = pos.y
+    wpose.position.z = z_high
     waypoints.append(copy.deepcopy(wpose))
-    wpose.position.z = 0.07
+
+    # WP 3
+    wpose.position.z = z_low
     waypoints.append(copy.deepcopy(wpose))
 
     (plan_1, fraction_1) = group.compute_cartesian_path(
                                        waypoints,   # waypoints to follow
-                                       0.01,        # eef_step
+                                       eef_step,        # eef_step
                                        jump_threshold,         # jump_threshold
                                        True)    
 
-    waypoints = []        
-    wpose = geometry_msgs.msg.Pose()
-    wpose.position.x = pos.x
-    wpose.position.y = pos.y
-    wpose.position.z = 0.2
-    wpose.orientation.x = quat_2[0]
-    wpose.orientation.y = quat_2[1]
-    wpose.orientation.z = quat_2[2]
-    wpose.orientation.w = quat_2[3]
-    waypoints.append(copy.deepcopy(wpose))
-    wpose.position.z = 0.07
-    waypoints.append(copy.deepcopy(wpose))
-
-    (plan_2, fraction_2) = group.compute_cartesian_path(
-                                       waypoints,   # waypoints to follow
-                                       0.01,        # eef_step
-                                       jump_threshold,         # jump_threshold
-                                       True)         
+    return plan_1, fraction_1
     
-    #print("go_to_pre_push fractions: " + str(fraction_1) + "," + str(fraction_2))
+  def go_to_pre_push_pose(self, pos, quat_1, quat_2):
+    print('go_to_pre_push_pose')
 
+    #group_variable_values = self.group.get_current_joint_values()
+    #group_variable_values[0] = 0.022942358314425704
+    #group_variable_values[1] = -1.3770054000233438
+    #group_variable_values[2] = -1.5693526471384356
+    #group_variable_values[3] =  4.51715083640563
+    #group_variable_values[4] = 1.5707964440042748
+    #group_variable_values[5] = 0.022942808495983513
+    #self.group.set_joint_value_target(group_variable_values)
+    #myplan = self.group.plan()
+    #self.group.go(wait=True)
+    #return False
+    
+    [plan_1, fraction_1] = self.get_cartesian_plan(pos, quat_1)
+    [plan_2, fraction_2] = self.get_cartesian_plan(pos, quat_2)
+
+    #TODO: get closest to the end effector orientation
+    
     success = False  
     if (fraction_1 == 1):
       success = True
-      group.execute(plan_1)
+      #group.execute(plan_1)
     elif (fraction_2 == 1):
       success = True
-      group.execute(plan_2)
+      #group.execute(plan_2)
 
     return success    
 
@@ -495,8 +487,9 @@ class PickPlaceServer:
         fraction = self.execute_push(goal.placement.point)
         if fraction > 0:
           result.fraction = fraction
-          success = self.lift_ee_up()
-          success = self.go_home()
+          success = self.lift_ee_up(0.1)
+          if not self.sim:
+            success = self.go_home()
           self.server.set_succeeded(result)
         else:
           print "execute_push FAILED"
@@ -519,7 +512,9 @@ class PickPlaceServer:
 
         if(success):
           success1 = self.Cartesian_To_Place()
-          success2 = self.go_home()
+
+          if not self.sim:
+            success2 = self.go_home()
 
         result.fraction = 1.0
         self.server.set_succeeded(result)

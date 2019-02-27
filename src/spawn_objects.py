@@ -66,14 +66,16 @@ class GenerateCylinders(object):
 
         
     def execute_cb(self, goal):
-        print "GenerateCylinders execute_cb"
 
         if goal.get_perfect_perception:
             result = push_vs_grasp.msg.GenerateCylindersResult()
             result.centroids = self.get_all_objects()
-            self._as.set_succeeded(result)
+            print "GenerateCylinders execute_cb : Perfect Perception"
+            self._as.set_succeeded(result)            
             return
-                        
+
+        print "GenerateCylinders execute_cb"
+        
         cur_model_name = self.model_name_goal + str(0)
         self.delete_model(cur_model_name)
         blue_goal_pose = Pose(goal.blue_goal.point, Quaternion(0,0,0,0))
@@ -84,7 +86,6 @@ class GenerateCylinders(object):
         red_goal_pose = Pose(goal.red_goal.point, Quaternion(0,0,0,0))
         cur_xml = self.obj_xml_4
         self.spawn_sdf_model(cur_model_name, cur_xml, "", red_goal_pose, "robot::base_link")
-
         
         result = push_vs_grasp.msg.GenerateCylindersResult()        
         num_objs = goal.num_objs
@@ -99,13 +100,13 @@ class GenerateCylinders(object):
             import math
             import random
             if  random.random() > 0.5:
-                num_blue = round(math.ceil(float(num_objs)/2))
+                num_blue = int(round(math.ceil(float(num_objs)/2)))
             else:
-                num_blue = round(math.floor(float(num_objs)/2))
+                num_blue = int(round(math.floor(float(num_objs)/2)))
                 
         #print "num_objs: " + str(num_objs)
         #print "num_blue: " + str(num_blue)
-
+        
         self.pause_physics()
         
         while len(result.centroids) < num_objs:
@@ -113,9 +114,10 @@ class GenerateCylinders(object):
             x = random.uniform(min_x,max_x)
             y = random.uniform(min_y,max_y)
             z = 0.05
-        
+
             #check collisions with others in the list
             coll_radius = 2*object_radius
+
             in_collision = False
             for j in result.centroids:
                 if sqrt((j.point.x-x)**2 + (j.point.y-y)**2) < coll_radius:
