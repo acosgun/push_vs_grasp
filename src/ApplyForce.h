@@ -10,6 +10,8 @@
 //ROS
 #include <ros/ros.h>
 #include <geometry_msgs/PointStamped.h>
+#include <push_vs_grasp/ManipAction.h>
+#include <push_vs_grasp/ManipActions.h>
 
 //UR Kinematics
 #include "ur_kin.h"
@@ -183,6 +185,7 @@ class ApplyForce : public Test
     double magnitude = 10.0;
     b2Vec2 linear_velocity = calc_linear_velocity(b, goal_body, magnitude);
     double angle = calc_angle(b, goal_body);
+    
     set_sensor_status(ee_body, true);
     set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
     ee_body->SetTransform(b->GetPosition(), angle);
@@ -314,8 +317,11 @@ class ApplyForce : public Test
     return 1.0;
   }
   
-  void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached, int& action_type, bool enable_draw, int algo, double& fraction)
-  {    
+  push_vs_grasp::ManipActions plan(bool& goal_reached, bool enable_draw, int algo)
+  {
+
+    push_vs_grasp::ManipActions manip_actions;
+        
     double padding_for_gripper = 0.04;
 
     red_goal_body = get_objects(red_goal_str)[0];
@@ -326,143 +332,142 @@ class ApplyForce : public Test
 
     if (displaced_bodies.empty()) {
       goal_reached = true;
-      return;
+      return manip_actions;
     }
 
-    /*
-    //0 = push. 1 = pick&place
-    if (rand() % 2 == 0)
-      action_type = 0; 
-    else
-      action_type = 1;
-    */
+    bool explore_pushes;
+    bool explore_picks;
 
-    if (algo == 0)
-      action_type = 0;
-    else if (algo == 1)
-      action_type = 1;    
-
-    if (action_type == 0) {
-      //Algo: greedy search for 1 goal-oriented push per object
-      WorldState state = save_world();
-      std::vector<double> heuristics;
-      std::vector<PushDef> push_defs;
-      double min_heuristic = -DBL_MAX;
-      PushDef min_push_def;
-      double heuristic = calc_heuristic();
-      //std::cout<<"heur INIT: " << heuristic <<std::endl;
-
-      for (unsigned int i = 0; i < displaced_bodies.size(); i++) {
-	PushDef push_def = simulate_push(displaced_bodies[i], true, enable_draw);
-	double heuristic = calc_heuristic();
-	//std::cout<<"heur[" << i<< "]: " << heuristic <<std::endl;
-	//print_push_def(push_def);
-	heuristics.push_back(heuristic);      
-	push_defs.push_back(push_def);
-	load_world(state);
-      }
-
-      auto smallest = std::min_element(heuristics.begin(), heuristics.end());
-      int min_index = std::distance(heuristics.begin(), smallest);
-      
-      min_push_def = push_defs[min_index];
-      //std::cout << "Best Push " <<std::endl;
-      //print_push_def(min_push_def);
-      //visualize selected push
-      
-      double push_start_x = 0.0, push_start_y = 0.0, push_end_x = 0.0, push_end_y = 0.0;
-      box2d_to_robot_frame(min_push_def.push_start.x, min_push_def.push_start.y, push_start_x , push_start_y);
-      box2d_to_robot_frame(min_push_def.push_end.x, min_push_def.push_end.y, push_end_x , push_end_y);
-      obj_centroid.point.x = push_start_x;
-      obj_centroid.point.y = push_start_y;
-      placement.point.x = push_end_x;
-      placement.point.y = push_end_y;
-      goal_reached = false;
-
-      /*
-      std::cout << "START "  <<std::endl;
-      std::cout << push_start_x<< std::endl;
-      std::cout << push_start_y<< std::endl;
-      std::cout << "END "  <<std::endl;
-      std::cout << push_end_x<< std::endl;
-      std::cout << push_end_y<< std::endl;
-      */
-
-      fraction = check_push_feasibility(min_push_def);
-      
-      simulate_push(displaced_bodies[min_index], true, enable_draw);
-      load_world(state);      
-      
-      return;
+    if (algo == 0) { // Push Only
+      explore_pushes = true;
+      explore_picks = false;      
     }
-    else if (action_type == 1) {
-
+    else if (algo == 1) { //Pick Only
+      explore_pushes = false;
+      explore_picks = true;      
     }
-    else {
-      ROS_ERROR("Error: Action type undefined");
-      exit(0);
+    else if (algo == 2) { // Combo
+      explore_pushes = true;
+      explore_picks = true;      
     }
     
-    //Algo: select an object for pick&place
-    while (true) {
-      
-      std::vector<int> displaced_bodies = get_displaced_objects();
-	  
-      //choose a random object
-      std::vector<int>::iterator randIt = displaced_bodies.begin();
-      std::advance(randIt, std::rand() % displaced_bodies.size());
-      int rand_id = *randIt;      
-      b2Body* cur_body = get_object_from_id(rand_id);      
-      
-      //choose a placement position in goal region
-      b2Body* goal_body;
-      if (get_body_color(cur_body) == "red")
-	goal_body = red_goal_body;
-      else if (get_body_color(cur_body) == "blue")
-	goal_body = blue_goal_body;
+    if (explore_pushes)
+      {
+	push_vs_grasp::ManipAction manip_action;
+	manip_action.action_type = 0;
+  
+	//Algo: greedy search for 1 goal-oriented push per object
+	WorldState state = save_world();
+	std::vector<double> heuristics;
+	std::vector<PushDef> push_defs;
+	double min_heuristic = -DBL_MAX;
+	PushDef min_push_def;
+	double heuristic = calc_heuristic();
+	//std::cout<<"heur INIT: " << heuristic <<std::endl;
 
-      //get goal region bounding box
-      b2AABB aabb = get_aabb(goal_body);
-      b2Vec2 lowerbound = aabb.lowerBound;
-      b2Vec2 upperbound = aabb.upperBound;
-
-      //sample a position in goal_body aabb
-      double x_sampled = RandomFloat(lowerbound.x, upperbound.x);
-      double y_sampled = RandomFloat(lowerbound.y, upperbound.y);
-
-      //get current position of the object, in case placement fails
-      double x_init = cur_body->GetPosition().x;
-      double y_init = cur_body->GetPosition().y;
-      double angle_init = cur_body->GetAngle();
-
-      set_sensor_status(cur_body, true);
-      double cur_radius = get_obj_radius(cur_body);
-      set_obj_radius(cur_body, cur_radius + padding_for_gripper); //padding
-	    
-      cur_body->SetTransform(b2Vec2(x_sampled,y_sampled), angle_init); //uniform angle sampling
-
-      //check if proposition satisfies goal
-      bool local_goal_satisfied = obj_goal_satisfied(goal_body, cur_body);
-
-      //check if proposition collides with any other object
-      bool in_collision_1 = coll_check(cur_body);
-	    
-      cur_body->SetTransform(b2Vec2(x_init,y_init), angle_init);
-      set_obj_radius(cur_body, cur_radius);
-      set_sensor_status(cur_body, false);
-
-      if (local_goal_satisfied && !in_collision_1)
-	{	      
-	  double x_out, y_out;
-	  box2d_to_robot_frame(x_sampled, y_sampled, x_out, y_out);	    
-	  obj_centroid = centroids[get_body_id(cur_body)];
-	  placement.point.x = x_out;
-	  placement.point.y = y_out;
-	  placement.point.z = obj_centroid.point.z;
-	  goal_reached = false;
-	  return;
+	for (unsigned int i = 0; i < displaced_bodies.size(); i++) {
+	  PushDef push_def = simulate_push(displaced_bodies[i], true, enable_draw);
+	  double heuristic = calc_heuristic();
+	  //std::cout<<"heur[" << i<< "]: " << heuristic <<std::endl;
+	  //print_push_def(push_def);
+	  heuristics.push_back(heuristic);      
+	  push_defs.push_back(push_def);
+	  load_world(state);
 	}
-    }
+
+	auto smallest = std::min_element(heuristics.begin(), heuristics.end());
+	int min_index = std::distance(heuristics.begin(), smallest);
+      
+	min_push_def = push_defs[min_index];
+      
+	double push_start_x = 0.0, push_start_y = 0.0, push_end_x = 0.0, push_end_y = 0.0;
+	box2d_to_robot_frame(min_push_def.push_start.x, min_push_def.push_start.y, push_start_x , push_start_y);
+	box2d_to_robot_frame(min_push_def.push_end.x, min_push_def.push_end.y, push_end_x , push_end_y);
+	manip_action.obj_centroid.point.x = push_start_x;
+	manip_action.obj_centroid.point.y = push_start_y;
+	manip_action.placement.point.x = push_end_x;
+	manip_action.placement.point.y = push_end_y;
+	goal_reached = false;
+
+	manip_action.fraction = check_push_feasibility(min_push_def);      
+	manip_actions.actions.push_back(manip_action);
+            
+	//simulate_push(displaced_bodies[min_index], true, enable_draw);
+	//load_world(state);
+      
+	return manip_actions;
+      }
+    else if (explore_picks)
+      {
+	
+	push_vs_grasp::ManipAction manip_action;
+	manip_action.action_type = 1;
+
+	while (true) {
+      
+	  std::vector<int> displaced_bodies = get_displaced_objects();
+	  
+	  //choose a random object
+	  std::vector<int>::iterator randIt = displaced_bodies.begin();
+	  std::advance(randIt, std::rand() % displaced_bodies.size());
+	  int rand_id = *randIt;      
+	  b2Body* cur_body = get_object_from_id(rand_id);      
+      
+	  //choose a placement position in goal region
+	  b2Body* goal_body;
+	  if (get_body_color(cur_body) == "red")
+	    goal_body = red_goal_body;
+	  else if (get_body_color(cur_body) == "blue")
+	    goal_body = blue_goal_body;
+
+	  //get goal region bounding box
+	  b2AABB aabb = get_aabb(goal_body);
+	  b2Vec2 lowerbound = aabb.lowerBound;
+	  b2Vec2 upperbound = aabb.upperBound;
+
+	  //sample a position in goal_body aabb
+	  double x_sampled = RandomFloat(lowerbound.x, upperbound.x);
+	  double y_sampled = RandomFloat(lowerbound.y, upperbound.y);
+
+	  //get current position of the object, in case placement fails
+	  double x_init = cur_body->GetPosition().x;
+	  double y_init = cur_body->GetPosition().y;
+	  double angle_init = cur_body->GetAngle();
+
+	  set_sensor_status(cur_body, true);
+	  double cur_radius = get_obj_radius(cur_body);
+	  set_obj_radius(cur_body, cur_radius + padding_for_gripper); //padding
+	    
+	  cur_body->SetTransform(b2Vec2(x_sampled,y_sampled), angle_init); //uniform angle sampling
+
+	  //check if proposition satisfies goal
+	  bool local_goal_satisfied = obj_goal_satisfied(goal_body, cur_body);
+
+	  //check if proposition collides with any other object
+	  bool in_collision_1 = coll_check(cur_body);
+	    
+	  cur_body->SetTransform(b2Vec2(x_init,y_init), angle_init);
+	  set_obj_radius(cur_body, cur_radius);
+	  set_sensor_status(cur_body, false);
+
+	  if (local_goal_satisfied && !in_collision_1)
+	    {	      
+	      double x_out, y_out;
+	      box2d_to_robot_frame(x_sampled, y_sampled, x_out, y_out);	    
+	      manip_action.obj_centroid = centroids[get_body_id(cur_body)];
+	      manip_action.placement.point.x = x_out;
+	      manip_action.placement.point.y = y_out;
+	      manip_action.placement.point.z = manip_action.obj_centroid.point.z;
+	      goal_reached = false;
+	      manip_actions.actions.push_back(manip_action);
+	      return manip_actions;
+	    }	  
+	}
+      }
+
+
+    //Sort w.r.t heuristic
+    
   }
 
   double get_obj_radius(b2Body* b) {

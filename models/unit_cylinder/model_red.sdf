@@ -13,7 +13,7 @@
           <iyz>0</iyz>
           <izz>0.00214533</izz>
         </inertia>
-        <pose frame=''>0 0 0 0 -0 0</pose>
+        <pose frame=''>0 0 0 0 0 0</pose>
       </inertial>
       <self_collide>0</self_collide>
       <kinematic>0</kinematic>
@@ -22,7 +22,7 @@
         <geometry>
           <cylinder>
             <radius>0.033</radius>
-            <length>0.115</length>
+            <length>0.1</length>
           </cylinder>
         </geometry>
         <material>
@@ -45,7 +45,7 @@
         <geometry>
           <cylinder>
             <radius>0.033</radius>
-            <length>0.115</length>
+            <length>0.1</length>
           </cylinder>
         </geometry>
         <surface>

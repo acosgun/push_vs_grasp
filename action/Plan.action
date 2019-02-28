@@ -8,10 +8,7 @@ geometry_msgs/PointStamped blue_goal
 int32 algo
 ---
 # Define the result
+push_vs_grasp/ManipActions manip_actions
 bool goal_reached
-geometry_msgs/PointStamped obj_centroid
-geometry_msgs/PointStamped placement
-int32 action_type
-float64 fraction
 ---
 # Define a feedback message

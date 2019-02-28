@@ -23,6 +23,12 @@
 #include <push_vs_grasp/GenerateCylindersAction.h>
 #include <push_vs_grasp/GenerateCylindersGoal.h>
 
+#include <push_vs_grasp/ManipAction.h>
+#include <push_vs_grasp/ManipActions.h>
+
+
+std::ofstream myfile;
+
 void spinThread()
 {
   ros::spin();
@@ -32,6 +38,21 @@ double fRand(double fMin, double fMax)
 {
     double f = (double)rand() / RAND_MAX;
     return fMin + f * (fMax - fMin);
+}
+
+void log_my_data(const std::string concat, const bool enable_log, const unsigned int num_obj, const unsigned int num_run, const unsigned int algo, bool task_success, const ros::Duration time_elapsed, const unsigned int num_picks, const unsigned int num_pushes)
+{
+  std::cout << "--- Run #" << num_run << std::endl;
+  std::cout << " Success: " << task_success << std::endl;
+  printf (" Time Elapsed: %4.2f\n", time_elapsed.toSec());
+  std::cout << " # Objects: " << num_obj << ", Algo: " << algo << ", # Pushes: " << num_pushes << ", # Picks : " << num_picks << std::endl;
+  std::cout << "---------" <<std::endl;		      
+
+  if (enable_log) {
+    myfile.open (concat.c_str(), std::fstream::app);		
+    myfile << "\n" << num_obj << "," << num_run << "," << algo << "," << task_success << "," << time_elapsed << "," << num_picks << "," << num_pushes;
+    myfile.close();
+  }
 }
 
 int main (int argc, char **argv)
@@ -44,7 +65,9 @@ int main (int argc, char **argv)
   double red_radius; double blue_radius; double object_radius;
   int num_obj_min; int num_obj_max; int runs_per_obj; int num_algos;
   double timeout_secs; bool perfect_perception; bool sim; 
-  std::string log_folder; bool enable_log; std::ofstream myfile; std::string concat;
+  std::string log_folder; bool enable_log; std::string concat;
+
+  bool verbose = false;
   
   nh.getParam("/perfect_perception", perfect_perception);
   nh.getParam("/sim", sim);
@@ -109,7 +132,7 @@ int main (int argc, char **argv)
   ROS_INFO("Waiting for Plan action client.");  
   Plan_Action_client.waitForServer();  
   ROS_INFO("Plan action client started");
-
+  
   ROS_INFO("Waiting for Generate Cylinders action client.");
   GenerateCylinders_Action_client.waitForServer();
   ROS_INFO("Generate Cylinders action client started");  
@@ -165,7 +188,8 @@ int main (int argc, char **argv)
 	      bool gen_cylinders_result = GenerateCylinders_Action_client.waitForResult();  
 	      push_vs_grasp::GenerateCylindersResult GenerateCylinders_Result = *GenerateCylinders_Action_client.getResult();
 	      actionlib::SimpleClientGoalState gen_state = GenerateCylinders_Action_client.getState();
-	      ROS_INFO("Generate Cylinders Action finished: %s", gen_state.toString().c_str());
+	      if (verbose)
+		ROS_INFO("Generate Cylinders Action finished: %s", gen_state.toString().c_str());
 
 	      ros::Duration time_elapsed;    
 	      ros::Time t_start = ros::Time::now();
@@ -192,11 +216,47 @@ int main (int argc, char **argv)
 		      GenerateCylinders_Action_client.sendGoal(perf_perception_goal);
 		      GenerateCylinders_Action_client.waitForResult();		      
 		      push_vs_grasp::GenerateCylindersResult perf_perception_result = *GenerateCylinders_Action_client.getResult();
+		      //Check if goal succeeded
+		      bool goal_reached = true;
+		      for (unsigned int i = 0; i < perf_perception_result.centroids.size(); i++)
+			{
+			  double xx1 = perf_perception_result.centroids[i].point.x;
+			  double yy1 = perf_perception_result.centroids[i].point.y;
 
+			  double xx2; double yy2; double rad;
+			  if (GenerateCylinders_Result.colors[i] == "blue") {
+			    xx2 = blueGoal_base_link.point.x;
+			    yy2 = blueGoal_base_link.point.y;
+			    rad = blue_radius;
+			  }
+			  else if (GenerateCylinders_Result.colors[i] == "red") {
+			    xx2 = redGoal_base_link.point.x;
+			    yy2 = redGoal_base_link.point.y;
+			    rad = red_radius;
+			  }
+			  double dist = sqrt((xx2-xx1)*(xx2-xx1) + (yy2-yy1)*(yy2-yy1));
+			  if (dist > (rad + object_radius)) {
+			      goal_reached = false;
+			      break;
+			  }			  
+			}
+
+		      if (goal_reached == true) {
+			ROS_INFO("GOAL SUCCEEDED!");
+			log_my_data(concat, enable_log, num_obj, num_run, algo, goal_reached, time_elapsed, num_picks, num_pushes);
+
+			break;
+		      }
+		      else {
+			ROS_INFO("Goal is not NOT succeeded..");
+		      }
+			
+		      		      
 		      Scan_Result.centroids = perf_perception_result.centroids;
 		      Scan_Result.radiuses = GenerateCylinders_Result.radiuses;
 		      Scan_Result.colors = GenerateCylinders_Result.colors;
-		      ROS_INFO("Perfect Perception SUCCEEDED");
+		      if (verbose)
+			ROS_INFO("Perfect Perception SUCCEEDED");
 		    }
 		  else
 		    {
@@ -205,7 +265,8 @@ int main (int argc, char **argv)
 		      ScanObjects_Action_client.waitForResult();
 		      Scan_Result = *ScanObjects_Action_client.getResult();
 		      actionlib::SimpleClientGoalState scan_state = ScanObjects_Action_client.getState();
-		      ROS_INFO("Scan Action finished: %s",scan_state.toString().c_str());
+		      if (verbose)
+			ROS_INFO("Scan Action finished: %s",scan_state.toString().c_str());
 		    }
 
 		  if (Scan_Result.centroids.empty()){
@@ -227,63 +288,55 @@ int main (int argc, char **argv)
 		  push_vs_grasp::PlanResult Plan_Result = *Plan_Action_client.getResult();
 		  plan_success = Plan_Result.goal_reached;
 		  actionlib::SimpleClientGoalState plan_state = Plan_Action_client.getState();
-		  ROS_INFO("Plan Action finished: %s",plan_state.toString().c_str());
+		  if(verbose)
+		    ROS_INFO("Plan Action finished: %s",plan_state.toString().c_str());
 
-		  std::cout << "Plan Push Fraction: " << Plan_Result.fraction << std::endl;
-		  
-		  //PickPlace Action
-		  push_vs_grasp::PickPlaceGoal pick_place_goal;		  
-		  pick_place_goal.action_type = Plan_Result.action_type;
-		  pick_place_goal.obj_centroid = Plan_Result.obj_centroid;
-		  pick_place_goal.placement = Plan_Result.placement;
-		  PickPlace_Action_client.sendGoal(pick_place_goal);
 
-		  bool pick_place_result = PickPlace_Action_client.waitForResult();
-		  push_vs_grasp::PickPlaceResult Pick_Place_Result = *PickPlace_Action_client.getResult();
-		  actionlib::SimpleClientGoalState pick_place_state = PickPlace_Action_client.getState();
-		  ROS_INFO("PickPlace Action finished: %s",pick_place_state.toString().c_str());
-
-		  std::cout << "Real Push Fraction: " << Pick_Place_Result.fraction << std::endl;
-		    
-		  if (pick_place_state == actionlib::SimpleClientGoalState::SUCCEEDED)
+		  for (unsigned int k = 0; k < Plan_Result.manip_actions.actions.size(); k++)
 		    {
-		      if (pick_place_goal.action_type == 0) {
-			num_pushes++;
-		      }
-		      else if (pick_place_goal.action_type == 1) {
-			num_picks++;
-		      }
-		    }
+		      //PickPlace Action
+		      push_vs_grasp::PickPlaceGoal pick_place_goal;		  
+		      pick_place_goal.action_type = Plan_Result.manip_actions.actions[k].action_type;
+		      pick_place_goal.obj_centroid = Plan_Result.manip_actions.actions[k].obj_centroid;
+		      pick_place_goal.placement = Plan_Result.manip_actions.actions[k].placement;
 
+		      PickPlace_Action_client.sendGoal(pick_place_goal);
+
+		      bool pick_place_result = PickPlace_Action_client.waitForResult();
+		      push_vs_grasp::PickPlaceResult Pick_Place_Result = *PickPlace_Action_client.getResult();
+		      actionlib::SimpleClientGoalState pick_place_state = PickPlace_Action_client.getState();
+		      if (verbose)
+			ROS_INFO("PickPlace Action finished: %s",pick_place_state.toString().c_str());
+
+		      std::cout << "Sim/Real Push Fractions: " << Plan_Result.manip_actions.actions[k].fraction << " , " << Pick_Place_Result.fraction << std::endl;
+		      		    
+		      if (pick_place_state == actionlib::SimpleClientGoalState::SUCCEEDED)
+			{
+			  if (pick_place_goal.action_type == 0) {
+			    num_pushes++;
+			  }
+			  else if (pick_place_goal.action_type == 1) {
+			    num_picks++;
+			  }
+			  break;
+			}
+		    }
+		  
 		  // Time elapsed
 		  ros::Time t_end = ros::Time::now();
 		  time_elapsed = t_end - t_start;
 		  bool timeout = time_elapsed >= ros::Duration(timeout_secs);
 	      
-		  if (Plan_Result.goal_reached || timeout)
-		    {		      
-		      if (sim)
-			{
-			  //TODO: check actual sim result?
-			}
-		      
+		  //if (Plan_Result.goal_reached || timeout) // Do this check in real
+		  //if (Plan_Result.goal_reached) 
+		  //  {
+		  //    task_success = true;
+		  //  } 
+		  
+		  if (timeout)
+		    {
 		      bool task_success = false;
-		      if (Plan_Result.goal_reached)
-			{
-			  task_success = true;
-			}
-		      
-		      if (enable_log)
-			{		      
-			  myfile.open (concat.c_str(), std::fstream::app);		
-			  myfile << "\n" << num_obj << "," << num_run << "," << algo << "," << task_success << "," << time_elapsed << "," << num_picks << "," << num_pushes;
-			  myfile.close();
-			}
-		      std::cout << "--- Run #" << num_run << std::endl;
-		      std::cout << " Success: " << task_success << std::endl;
-		      printf (" Time Elapsed: %4.2f\n", time_elapsed.toSec());
-		      std::cout << " # Objects: " << num_obj << ", Algo: " << algo << ", # Pushes: " << num_pushes << ", # Picks : " << num_picks << std::endl;
-		      std::cout << "---------" <<std::endl;		      
+		      log_my_data(concat, enable_log, num_obj, num_run, algo, task_success, time_elapsed, num_picks, num_pushes);
 		      break;
 		    }
 		}

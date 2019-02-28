@@ -1,0 +1,4 @@
+geometry_msgs/PointStamped obj_centroid
+geometry_msgs/PointStamped placement
+int32 action_type
+float64 fraction

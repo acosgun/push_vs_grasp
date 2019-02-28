@@ -27,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   actionlib
   robotiq_2f_gripper_control
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -65,11 +66,11 @@ find_package(GLEW REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  ManipAction.msg
+  ManipActions.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -128,7 +129,7 @@ add_action_files(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES push_vs_grasp
-   CATKIN_DEPENDS gazebo_msgs rospy geometry_msgs tf moveit_core moveit_ros_move_group actionlib_msgs
+   CATKIN_DEPENDS gazebo_msgs rospy geometry_msgs tf moveit_core moveit_ros_move_group actionlib_msgs message_runtime
 #  DEPENDS system_lib
 )
 

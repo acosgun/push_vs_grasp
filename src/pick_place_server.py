@@ -21,9 +21,13 @@ from robotiq_2f_gripper_control.msg import Robotiq2FGripper_robot_output
 from gazebo_msgs.msg import ModelState
 from gazebo_msgs.srv import *
 import time
-
-#CUSTOM
+from control_msgs.msg import (
+    FollowJointTrajectoryAction,
+    FollowJointTrajectoryGoal,
+)
 from push_vs_grasp.msg import PickPlaceAction, PickPlaceResult
+from control_msgs.msg import *
+from trajectory_msgs.msg import *
 
 #GLOBAL PARAMS
 gripperOffset = 0.3
@@ -32,6 +36,20 @@ jump_threshold = 5 #5
 max_num_objs = 10
 eef_step = 0.01
 model_name = "unit_cylinder"
+
+JOINT_NAMES = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
+               'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
+#Q1 = [2.2,0,-1.57,0,0,0]
+#Q2 = [1.5,0,-1.57,0,0,0]
+#Q3 = [1.5,-0.2,-1.57,0,0,0]
+ 
+q_home_push_sim = [0.022094493160206063, -1.893481450827033, -1.9637408523401323, 3.8549434891245378, 1.5700411220305215, 0.0007686897581802299]
+q_home_push_real = [0.022597806250636232, -1.5856213618880979, -1.5743019037965347, 3.1577767221509427, 1.5703875993524257, 0.0008091528403513237]
+q_home_pick_real = [0.023, -1.38, -1.57, 4.51, 1.57, 0.0]
+q_home_pick_sim = [0.02236895846625675, -1.2769328818447914, -2.139559890001145, 4.9834799025128875, 1.5699749396844025, -0.0004364574301582991]
+
+
+
 
 class PickPlaceServer:
   def __init__(self):
@@ -60,13 +78,18 @@ class PickPlaceServer:
     self.Target_pose = geometry_msgs.msg.Pose()
     rospy.loginfo("Target_pose ")
 
-    self.server = actionlib.SimpleActionServer('pick_place', PickPlaceAction, self.executeCB, False)
+    self.server = actionlib.SimpleActionServer('pick_place', PickPlaceAction, self.executeCB, False)        
     rospy.loginfo("server ")
 
+    self.follow_joint_trajectory_client = actionlib.SimpleActionClient('/arm_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
+    print "Waiting for follow_joint_trajectory server..."
+    self.follow_joint_trajectory_client.wait_for_server()
+    print "Connected to follow_joint_trajectory server"
+        
     self.init_home_pose()
     rospy.loginfo("init_home_pose ")
 
-    self.go_home()
+    self.go_home(for_pushing = True)
     rospy.loginfo("go_home ")
 
     self.server.start()
@@ -120,6 +143,8 @@ class PickPlaceServer:
     #print ""
     self.group = group
 
+
+    
   def init_gazebo(self):
 
     if(self.sim):
@@ -319,25 +344,39 @@ class PickPlaceServer:
 
     return success
 
-  def go_home(self):
+  def go_home(self, for_pushing):
     print("go_home")
-    group = self.group
 
-    waypoints = []
-    wpose = self.home_pose
-    waypoints.append(copy.deepcopy(wpose))
+    if self.sim:
+      if for_pushing:
+        self.send_robot_to_joint_state(q_home_push_sim)
+      else:
+        self.send_robot_to_joint_state(q_home_pick_sim)
+    else:
+      if for_pushing:
+        self.send_robot_to_joint_state(q_home_push_real)
+      else:
+        self.send_robot_to_joint_state(q_home_pick_real)
 
-    (plan, fraction) = group.compute_cartesian_path(
-                                       waypoints,   # waypoints to follow
-                                       eef_step,        # eef_step
-                                       jump_threshold,         # jump_threshold
-                                       True)
+    return True
+  
+    #group = self.group
 
-    success = False
-    if (fraction > 0):
-      success = True
-      group.execute(plan)
-    return success
+    #waypoints = []
+    #wpose = self.home_pose
+    #waypoints.append(copy.deepcopy(wpose))
+
+    #(plan, fraction) = group.compute_cartesian_path(
+    #                                   waypoints,   # waypoints to follow
+    #                                   eef_step,        # eef_step
+    #                                   jump_threshold,         # jump_threshold
+    #                                   True)
+
+    #success = False
+    #if (fraction > 0):
+    #  success = True
+    #  group.execute(plan)
+    #return success
 
   def lift_ee_up(self, delta):
     print('lift_ee_up')
@@ -412,21 +451,21 @@ class PickPlaceServer:
                                        True)    
 
     return plan_1, fraction_1
-    
+
+
+  def send_robot_to_joint_state(self, q):
+    print('send_robot_to_joint_state')
+    current_joint_state = self.group.get_current_joint_values()    
+    g = FollowJointTrajectoryGoal()    
+    g.trajectory = JointTrajectory()
+    g.trajectory.joint_names = JOINT_NAMES
+    g.trajectory.points = [JointTrajectoryPoint(positions=q, velocities=[0]*6, time_from_start=rospy.Duration(2.0))]
+    self.follow_joint_trajectory_client.send_goal(g)
+    self.follow_joint_trajectory_client.wait_for_result()    
+    return
+  
   def go_to_pre_push_pose(self, pos, quat_1, quat_2):
     print('go_to_pre_push_pose')
-
-    #group_variable_values = self.group.get_current_joint_values()
-    #group_variable_values[0] = 0.022942358314425704
-    #group_variable_values[1] = -1.3770054000233438
-    #group_variable_values[2] = -1.5693526471384356
-    #group_variable_values[3] =  4.51715083640563
-    #group_variable_values[4] = 1.5707964440042748
-    #group_variable_values[5] = 0.022942808495983513
-    #self.group.set_joint_value_target(group_variable_values)
-    #myplan = self.group.plan()
-    #self.group.go(wait=True)
-    #return False
     
     [plan_1, fraction_1] = self.get_cartesian_plan(pos, quat_1)
     [plan_2, fraction_2] = self.get_cartesian_plan(pos, quat_2)
@@ -436,10 +475,10 @@ class PickPlaceServer:
     success = False  
     if (fraction_1 == 1):
       success = True
-      #group.execute(plan_1)
+      self.group.execute(plan_1)
     elif (fraction_2 == 1):
       success = True
-      #group.execute(plan_2)
+      self.group.execute(plan_2)
 
     return success    
 
@@ -461,8 +500,8 @@ class PickPlaceServer:
     #import numpy as np 
     #Zangle = - np.tanh(1/GradM);
     
-    quat_1 = quaternion_from_euler(0, 0, self.limit_angle_pi_minus_pi(angle-pi/2))
-    quat_2 = quaternion_from_euler(0, 0, self.limit_angle_pi_minus_pi(angle+pi/2))
+    quat_1 = quaternion_from_euler(pi, 0, self.limit_angle_pi_minus_pi(angle-pi/2))
+    quat_2 = quaternion_from_euler(pi, 0, self.limit_angle_pi_minus_pi(angle+pi/2))
     return quat_1, quat_2
     
   def executeCB(self, goal):
@@ -480,16 +519,15 @@ class PickPlaceServer:
     result.fraction = 0.0
     
     if goal.action_type == 0: #Push Action
+      self.go_home(for_pushing=True)
       [quat_1, quat_2] = self.compute_push_orientation(goal.obj_centroid.point, goal.placement.point)      
       success = self.go_to_pre_push_pose(goal.obj_centroid.point, quat_1, quat_2)
-
       if success:
         fraction = self.execute_push(goal.placement.point)
         if fraction > 0:
           result.fraction = fraction
           success = self.lift_ee_up(0.1)
-          if not self.sim:
-            success = self.go_home()
+          success = self.go_home(for_pushing=True)
           self.server.set_succeeded(result)
         else:
           print "execute_push FAILED"
@@ -500,21 +538,16 @@ class PickPlaceServer:
         result.fraction = 0.0
         self.server.set_aborted(result)
                 
-
-
     elif goal.action_type == 1: # Pick Action
-    
+      self.go_home(for_pushing=False)
       if(self.sim):
         #Associate the centroid with one of the cylindrical objects in Gazebo
         self.get_closest_object(goal.obj_centroid.point)
 
         success = self.Cartesian_To_Pick()
-
         if(success):
           success1 = self.Cartesian_To_Place()
-
-          if not self.sim:
-            success2 = self.go_home()
+          success2 = self.go_home(for_pushing=False)
 
         result.fraction = 1.0
         self.server.set_succeeded(result)

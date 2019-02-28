@@ -7,6 +7,9 @@
 // ROS
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
+#include <push_vs_grasp/ManipAction.h>
+#include <push_vs_grasp/ManipActions.h>
+
 
 //Custom
 #include <push_vs_grasp/PlanAction.h>
@@ -53,14 +56,11 @@ class Box2DPlanner: public Test
     int action_type;
     double fraction;
     
-    test_derived->plan(obj_centroid, placement, goal_reached, action_type, enable_draw, goal->algo, fraction);
+    push_vs_grasp::ManipActions manip_actions = test_derived->plan(goal_reached, enable_draw, goal->algo);
     
     push_vs_grasp::PlanResult result_;
-    result_.obj_centroid = obj_centroid;
-    result_.placement = placement;
+    result_.manip_actions = manip_actions;
     result_.goal_reached = goal_reached;
-    result_.action_type = action_type;
-    result_.fraction = fraction;
     as_.setSucceeded(result_);
   }
 
