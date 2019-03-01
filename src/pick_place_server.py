@@ -43,13 +43,11 @@ JOINT_NAMES = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
 #Q2 = [1.5,0,-1.57,0,0,0]
 #Q3 = [1.5,-0.2,-1.57,0,0,0]
  
-q_home_push_sim = [0.022094493160206063, -1.893481450827033, -1.9637408523401323, 3.8549434891245378, 1.5700411220305215, 0.0007686897581802299]
+q_home_push_sim = [0.022094493160206063, -1.693481450827033, -1.7637408523401323, 3.8549434891245378, 1.5700411220305215, 0.0007686897581802299]
 q_home_push_real = [0.022597806250636232, -1.5856213618880979, -1.5743019037965347, 3.1577767221509427, 1.5703875993524257, 0.0008091528403513237]
+
 q_home_pick_real = [0.023, -1.38, -1.57, 4.51, 1.57, 0.0]
 q_home_pick_sim = [0.02236895846625675, -1.2769328818447914, -2.139559890001145, 4.9834799025128875, 1.5699749396844025, -0.0004364574301582991]
-
-
-
 
 class PickPlaceServer:
   def __init__(self):
@@ -282,6 +280,8 @@ class PickPlaceServer:
       else:
         #Vanish Object in Gazebo
         self.vanish_gazebo_object(self.obj_name)
+        time.sleep(1)
+        
 
     wpose.position.z = 0.5
     group.set_pose_target(wpose)
@@ -327,13 +327,13 @@ class PickPlaceServer:
     if (fraction == 1):
       success = True
       group.execute(plan)
-      #time.sleep(1)
 
       if not self.sim:
         self.Gripper_open()
       else:
         #Drop Object
         self.place_object(self.obj_name)
+        time.sleep(1)
 
 
 

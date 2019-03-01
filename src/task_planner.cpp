@@ -50,7 +50,7 @@ void log_my_data(const std::string concat, const bool enable_log, const unsigned
 
   if (enable_log) {
     myfile.open (concat.c_str(), std::fstream::app);		
-    myfile << "\n" << num_obj << "," << num_run << "," << algo << "," << task_success << "," << time_elapsed << "," << num_picks << "," << num_pushes;
+    myfile << "\n" << num_obj << "," << num_run << "," << algo << "," << num_picks << "," << num_pushes << "," << time_elapsed << "," << task_success;
     myfile.close();
   }
 }
@@ -109,7 +109,7 @@ int main (int argc, char **argv)
     if (!myfile.is_open()){//File doesn't exist yet
       myfile.clear();
       myfile.open(concat, std::ios::out);  // will create if necessary
-      myfile << "Algorithm, Number of Objects, Time Elapsed, Number of Pick/Places, Number of Pushes, Successful";    
+      myfile << "Number of Objects, Experiment Number, Algorithm Type, Number of Pick/Places, Number of Pushes, Time Elapsed, Successful";    
     }
     myfile.close();
   }
@@ -143,7 +143,6 @@ int main (int argc, char **argv)
 	{
 	  for (unsigned int algo = 0; algo < num_algos; algo++)
 	    {
-
 	      //generate random goals
 	      geometry_msgs::PointStamped redGoal_base_link;
 	      geometry_msgs::PointStamped blueGoal_base_link;	      
@@ -198,7 +197,7 @@ int main (int argc, char **argv)
 	      unsigned int num_pushes = 0;
 	      unsigned int num_picks = 0;
 	  
-	      while(true)
+	      while(ros::ok())
 		{
 		  
 		  kinect_segmentation::ScanObjectsGoal ScanObjects_goal;
@@ -244,11 +243,10 @@ int main (int argc, char **argv)
 		      if (goal_reached == true) {
 			ROS_INFO("GOAL SUCCEEDED!");
 			log_my_data(concat, enable_log, num_obj, num_run, algo, goal_reached, time_elapsed, num_picks, num_pushes);
-
 			break;
 		      }
 		      else {
-			ROS_INFO("Goal is not NOT succeeded..");
+			//ROS_INFO("Goal is not NOT succeeded..");
 		      }
 			
 		      		      
@@ -291,7 +289,7 @@ int main (int argc, char **argv)
 		  if(verbose)
 		    ROS_INFO("Plan Action finished: %s",plan_state.toString().c_str());
 
-
+		  
 		  for (unsigned int k = 0; k < Plan_Result.manip_actions.actions.size(); k++)
 		    {
 		      //PickPlace Action
@@ -308,15 +306,17 @@ int main (int argc, char **argv)
 		      if (verbose)
 			ROS_INFO("PickPlace Action finished: %s",pick_place_state.toString().c_str());
 
-		      std::cout << "Sim/Real Push Fractions: " << Plan_Result.manip_actions.actions[k].fraction << " , " << Pick_Place_Result.fraction << std::endl;
+		      //std::cout << "Sim/Real Push Fractions: " << Plan_Result.manip_actions.actions[k].fraction << " , " << Pick_Place_Result.fraction << std::endl;
 		      		    
 		      if (pick_place_state == actionlib::SimpleClientGoalState::SUCCEEDED)
 			{
 			  if (pick_place_goal.action_type == 0) {
 			    num_pushes++;
+			    std::cout << " Push Applied" <<std::endl;
 			  }
 			  else if (pick_place_goal.action_type == 1) {
 			    num_picks++;
+			    std::cout << " Pick Applied" <<std::endl;
 			  }
 			  break;
 			}
