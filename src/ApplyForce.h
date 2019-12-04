@@ -227,12 +227,12 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
     double goal_threshold = 0.0008;
     double ee_multiplier = 1.25;
 
-    double magnitude = 0.11;
+    double magnitude = 0.05;
     b2Vec2 linear_velocity = calc_linear_velocity2(dist, angle, magnitude);
 
     //double angle = calc_angle(b, goal_body);
 
-    set_sensor_status(ee_body, true);
+    set_sensor_status(ee_body, false);
     set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
     
     ee_body->SetTransform(position, angle);
@@ -264,7 +264,7 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
     
        else {
         //  std::cout << "vel should be set" << std::endl;
-         ee_body->SetLinearVelocity(linear_velocity);
+         ee_body->SetLinearVelocity(-linear_velocity);
          draw_stuff(true, true);
        }
 
