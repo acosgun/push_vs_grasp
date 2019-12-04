@@ -9,30 +9,22 @@ add_compile_options(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  gazebo_msgs
-  roscpp
+find_package(catkin REQUIRED COMPONENTS  roscpp
   rospy
   geometry_msgs
   tf
-  moveit_core
-  moveit_msgs
-  moveit_planners_ompl
-  moveit_ros_move_group
-  moveit_ros_planning_interface
-  moveit_ros_visualization
-  moveit_visual_tools
   rviz_visual_tools
   genmsg
-  actionlib_msgs
-  actionlib
-  robotiq_2f_gripper_control
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
+
+find_package(OpenCV REQUIRED core imgproc highgui)
+
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -65,35 +57,22 @@ find_package(GLEW REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+## add_message_files(
+##   FILES
+##   push_action.msg
+##)
 
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
-
-## Generate actions in the 'action' folder
-add_action_files(
-  DIRECTORY
-  action
+add_service_files(
   FILES
-  PickPlace.action
-  Plan.action
+  push_action.srv
 )
 
-## Generate added messages and services with any dependencies listed here
- generate_messages(
-   DEPENDENCIES
-   actionlib_msgs  # Or other packages containing msgs
-   geometry_msgs
-   std_msgs
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  sensor_msgs
 )
+
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -127,7 +106,7 @@ add_action_files(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES push_vs_grasp
-   CATKIN_DEPENDS gazebo_msgs rospy geometry_msgs tf moveit_core moveit_ros_move_group actionlib_msgs
+   CATKIN_DEPENDS message_runtime rospy geometry_msgs
 #  DEPENDS system_lib
 )
 
@@ -138,6 +117,9 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(include Box2D ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} 	${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} ${Box2D_SOURCE_DIR} ${Testbed_Framework_SRCS})
+
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -172,7 +154,7 @@ source_group(Framework FILES ${Testbed_Framework_SRCS2})
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 
-add_executable(task_planner src/task_planner.cpp)
+#add_executable(task_planner src/task_planner.cpp)
 add_executable(box2d_planner_server src/box2d_planner_server.cpp ${Testbed_Framework_SRCS2})
 
 
@@ -186,6 +168,8 @@ add_executable(box2d_planner_server src/box2d_planner_server.cpp ${Testbed_Frame
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+
+
 ## Specify libraries to link a library or executable target against
 target_link_libraries(box2d_planner_server
    ${catkin_LIBRARIES}
@@ -193,21 +177,9 @@ target_link_libraries(box2d_planner_server
    ${GLEW_LIBRARIES}
    glfw
    ${ADDITIONAL_LIBRARIES}
-   ${OPENGL_LIBRARIES}  
-)
-target_link_libraries(task_planner
-   ${catkin_LIBRARIES}
- )
-
-
-add_dependencies(
-  task_planner
-  ${push_vs_grasp_EXPORTED_TARGETS}
-)
-
-add_dependencies(
-  box2d_planner_server
-  ${push_vs_grasp_EXPORTED_TARGETS}
+   ${OPENGL_LIBRARIES}
+${OpenCV_LIBRARIES}
+  
 )
 
 

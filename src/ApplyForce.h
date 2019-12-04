@@ -6,10 +6,13 @@
 #include <iostream>
 #include <string>
 #include <random>
+#include <cmath>
 
 //ROS
 #include <ros/ros.h>
 #include <geometry_msgs/PointStamped.h>
+
+#include <opencv2/opencv.hpp>
 
 struct BodyState {
   b2Vec2 position;
@@ -133,6 +136,23 @@ class ApplyForce : public Test
     y_out = -x_in * pix_coeff;
     return;
   }
+
+void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y_out) {
+    x_out = 10 * (x_in + 37.5);
+    y_out = -(10 * y_in + 100) + 500;
+
+    //y = 0 -> max
+    //y = max -> 0
+
+    return;
+
+  //     float min_x = (-0.7F + coll_radius);
+  // float max_x = 0;
+
+  // float min_y = -(0.75F-coll_radius);
+  // float max_y = 0.75F-coll_radius;
+  }
+
   void box2d_to_robot_frame(const double x_in, const double y_in, double& x_out, double& y_out) {
     x_out = -y_in/pix_coeff;
     y_out = x_in/pix_coeff;
@@ -150,6 +170,27 @@ class ApplyForce : public Test
     return linear_velocity;
   }
 
+  b2Vec2 calc_linear_velocity2(float dist, float angle, double out_magnitude) {
+    
+    b2Vec2 linear_velocity;
+
+    double diff_x = dist * sin(angle);
+    double diff_y = dist * cos(angle);
+
+    double mag = sqrt(diff_x*diff_x + diff_y*diff_y);
+
+    double coeff = out_magnitude/mag;
+    
+    linear_velocity.x = diff_x*coeff;
+    linear_velocity.y = diff_y*coeff;
+    
+    return linear_velocity;
+
+  }
+
+
+
+
   double calc_angle(b2Body* b_from, b2Body* b_to) {
     double diff_x = b_from->GetPosition().x - b_to->GetPosition().x;
     double diff_y = b_from->GetPosition().y - b_to->GetPosition().y;
@@ -162,6 +203,115 @@ class ApplyForce : public Test
     double mag = sqrt(diff_x*diff_x + diff_y*diff_y);
     return mag;
   }
+
+  double get_dist_moved(float x_start, float y_start, b2Body* b_to) {
+    double diff_x = x_start - b_to->GetPosition().x;
+    double diff_y = y_start - b_to->GetPosition().y;
+    double mag = sqrt(diff_x*diff_x + diff_y*diff_y);
+    return mag;
+  }
+
+  cv::Mat push_action(float start_x, float start_y, float angle, float dist, double& out_dist) {
+ 
+    b2Vec2 position = b2Vec2(start_x, start_y);
+
+    red_goal_body = get_objects(red_goal_str)[0];
+    blue_goal_body = get_objects(blue_goal_str)[0];
+
+
+  std::vector<int> displaced_bodies = get_displaced_objects();
+  std::cout << "---- # displaced_bodies: " << displaced_bodies.size() << std::endl;
+
+
+    PushDef push_def;
+    double goal_threshold = 0.0008;
+    double ee_multiplier = 1.25;
+
+    double magnitude = 0.11;
+    b2Vec2 linear_velocity = calc_linear_velocity2(dist, angle, magnitude);
+
+    //double angle = calc_angle(b, goal_body);
+
+    set_sensor_status(ee_body, true);
+    set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
+    
+    ee_body->SetTransform(position, angle);
+
+    ee_body->SetActive(true);
+    ee_body->SetLinearVelocity(linear_velocity);
+
+    push_def.push_start = ee_body->GetPosition();    
+
+
+    while (true) {
+
+      double d = dist - get_dist_moved(start_x, start_y, ee_body);
+
+      bool collision = coll_check_with_robot_base(ee_body);
+      int count = 0;
+      for (b2Contact* contact = m_world->GetContactList(); contact; contact = contact->GetNext())
+        {
+          count++;
+        }
+
+      if (d < goal_threshold*pix_coeff || collision) {
+        //  std::cout << "vel is not set" << std::endl;
+
+        ee_body->SetLinearVelocity(b2Vec2(0,0));
+        set_sensor_status(ee_body, true);
+        break;
+      }
+    
+       else {
+        //  std::cout << "vel should be set" << std::endl;
+         ee_body->SetLinearVelocity(linear_velocity);
+         draw_stuff(true, true);
+       }
+
+    }
+
+    push_def.push_end = ee_body->GetPosition();   
+    ee_body->SetActive(false);
+
+    cv::Mat data = get_ocv_img_from_gl_img();
+    out_dist = calc_heuristic();
+    //cv::imwrite("/home/rhys/some.jpg", data);
+
+    return data;
+
+  }
+
+  cv::Mat get_ocv_img_from_gl_img()
+{
+    cv::Mat img(500, 500, CV_8UC3, cv::Scalar(0,0, 0));
+
+     for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
+
+      cv::Scalar colour;
+
+      if (get_body_color(b) == "red") {
+        colour = cv::Scalar(0,0,255);
+
+        double x_out, y_out;
+        box2d_to_img(b->GetPosition().x,b->GetPosition().y, x_out, y_out);
+        std::cout << "X: " << x_out << "Y: " << y_out << std::endl;
+        cv::circle(img, cv::Point(x_out, y_out), 0.08 * pix_coeff*10, colour, -1);
+
+      }
+      else if (get_body_color(b) == "blue") {
+        colour = cv::Scalar(255,0,0);
+
+        double x_out, y_out;
+        box2d_to_img(b->GetPosition().x,b->GetPosition().y, x_out, y_out);
+        std::cout << "X: " << x_out << "Y: " << y_out << std::endl;
+        cv::circle(img, cv::Point(x_out, y_out), 0.08 * pix_coeff * 10, colour, -1);
+
+      }
+
+    }
+
+    return img;
+}
        	
   PushDef simulate_push(int obj_id, bool goal_oriented, bool draw) {    
     PushDef push_def;
@@ -174,6 +324,7 @@ class ApplyForce : public Test
     b2Body* goal_body;
     if (get_body_color(b) == "red")
       goal_body = red_goal_body;
+
     else if (get_body_color(b) == "blue")
       goal_body = blue_goal_body;
 
@@ -332,9 +483,15 @@ class ApplyForce : public Test
       //choose a placement position in goal region
       b2Body* goal_body;
       if (get_body_color(cur_body) == "red")
-	goal_body = red_goal_body;
-      else if (get_body_color(cur_body) == "blue")
+	{
+    goal_body = red_goal_body;
+    std::cout << cur_body->IsActive() << std::endl;
+  }
+
+      else if (get_body_color(cur_body) == "blue") {
 	goal_body = blue_goal_body;
+      std::cout << cur_body->IsActive() << std::endl;
+      }
 
       //get goal region bounding box
       b2AABB aabb = get_aabb(goal_body);
@@ -460,8 +617,15 @@ void set_sensor_status(b2Body* body, bool isSensor) {
 
   bool obj_goal_satisfied(b2Body* goal_body, b2Body* test_body) {
     bool global_hit = false;
+        // std::cout << "global hit = false" << std::endl;
+
     b2Vec2 point = test_body->GetPosition();
+    // std::cout << "got pos" << std::endl;
+
+    // std::cout << goal_body->GetPosition().x << std::endl;
+
     b2Fixture* F = goal_body->GetFixtureList();
+    // std::cout << "got fixture" << std::endl;
     while(F != NULL)
       {
 	switch (F->GetType())
@@ -469,6 +633,7 @@ void set_sensor_status(b2Body* body, bool isSensor) {
 	  case b2Shape::e_circle:
 	    {
 	      b2CircleShape* circle = (b2CircleShape*) F->GetShape();
+        // std::cout << "got circle" << std::endl;
 	      bool hit = circle->TestPoint(goal_body->GetTransform(), point);
 	      if (hit) {
 		global_hit = true;
@@ -493,19 +658,28 @@ void set_sensor_status(b2Body* body, bool isSensor) {
 
   std::vector<int> get_displaced_objects() {
     std::vector<int> displaced_bodies;
+
     for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
-        if (get_body_id(b) < 0) {
-          continue;
-        }
-        b2Body* goal_body;
+    
+        // if (get_body_id(b) < 0) {
+        //   continue;
+        // }
+        // std::cout << "Rgb" << std::endl;
+        // std::cout << red_goal_body << std::endl;
+
+  b2Body* goal_body;
+  // std::cout << get_body_color(b) << std::endl;
+
 	if (get_body_color(b) == "red")
 	  goal_body = red_goal_body;
 	else if (get_body_color(b) == "blue")
 	  goal_body = blue_goal_body;
 
-	if (!obj_goal_satisfied(goal_body, b)) {
-	  displaced_bodies.push_back(get_body_id(b));
-	}
+  
+
+	 if (!obj_goal_satisfied(goal_body, b)) {
+	   displaced_bodies.push_back(1);
+	 }
       }    
     return displaced_bodies;
   }
@@ -576,6 +750,9 @@ void set_sensor_status(b2Body* body, bool isSensor) {
       b2FixtureDef myFixtureDef;
       myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
       dynamicBody1->CreateFixture(&myFixtureDef); //add a fixture to the body
+
+      dynamicBody1->SetActive(true);
+
 
       bodyUserData* myStruct = new bodyUserData;	    
       myStruct->id = i;
