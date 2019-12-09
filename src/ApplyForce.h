@@ -56,6 +56,7 @@ class ApplyForce : public Test
   b2Body* robot_base_body;
   b2Body* red_goal_body;
   b2Body* blue_goal_body;
+  b2Body* ground;	  
   
  public:
  ApplyForce(): red_ptr(&red_str), blue_ptr(&blue_str), red_goal_ptr(&red_goal_str), blue_goal_ptr(&blue_goal_str), gray_ptr(&gray_str) { }
@@ -99,7 +100,7 @@ class ApplyForce : public Test
       circleShape.m_radius = state.bodies[i].radius;      
       b2FixtureDef myFixtureDef;
       myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
-      myFixtureDef.friction = 1.0;
+      myFixtureDef.friction = 0.99;
       dynamicBody1->CreateFixture(&myFixtureDef); //add a fixture to the body
       bodyUserData* myStruct = new bodyUserData;	    
       myStruct->id = state.bodies[i].id;
@@ -272,6 +273,11 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
 
     push_def.push_end = ee_body->GetPosition();   
     ee_body->SetActive(false);
+
+    for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
+        b->SetLinearVelocity(b2Vec2(0,0));
+    }
+
 
     cv::Mat data = get_ocv_img_from_gl_img();
     out_dist = calc_heuristic();
@@ -748,10 +754,22 @@ void set_sensor_status(b2Body* body, bool isSensor) {
       circleShape.m_radius = radiuses[i]*pix_coeff; //radius	  
 	    
       b2FixtureDef myFixtureDef;
+      myFixtureDef.friction = 0.99f;
       myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
       dynamicBody1->CreateFixture(&myFixtureDef); //add a fixture to the body
 
       dynamicBody1->SetActive(true);
+
+      // b2FrictionJointDef friction_joint_def;
+
+      // friction_joint_def.Initialize(ground,dynamicBody1,b2Vec2(0,0));
+
+      // friction_joint_def.maxForce =1000;
+      // friction_joint_def.maxTorque=1000;
+
+      // b2FrictionJoint* joint = (b2FrictionJoint*)m_world->CreateJoint( &friction_joint_def );
+
+
 
 
       bodyUserData* myStruct = new bodyUserData;	    
@@ -769,14 +787,14 @@ void set_sensor_status(b2Body* body, bool isSensor) {
   
   void setup_table(geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal)
   {
-    m_world->SetGravity(b2Vec2(0.0f, 0.0f));
+    m_world->SetGravity(b2Vec2(0, 0));
 
-    b2Body* ground;	  
+
 
     b2EdgeShape shape;
     b2FixtureDef sd;
     sd.shape = &shape;
-    sd.friction = 1.0f;
+    sd.friction = 0.99f;
 	  
     double table_x_len = 1.5;
     double table_y_len = 0.8;
