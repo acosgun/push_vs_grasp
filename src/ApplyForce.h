@@ -227,10 +227,10 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
 
 
     PushDef push_def;
-    double goal_threshold = 0.0008;
+    double goal_threshold = 0.02;
     double ee_multiplier = 1.25;
 
-    double magnitude = 0.05;
+    double magnitude = 0.1;
     b2Vec2 linear_velocity = calc_linear_velocity2(dist, angle, magnitude);
 
     set_sensor_status(ee_body, false);
@@ -248,7 +248,6 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
       double d = dist - get_dist_moved(start_x, start_y, ee_body);
 
 
-
       bool collision = coll_check_with_robot_base(ee_body);
 
       if (d < goal_threshold*pix_coeff || collision) {
@@ -264,13 +263,7 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
 
     }
 
-    std::cout << "reached here" << std::endl;
     push_def.push_end = ee_body->GetPosition(); 
-
-    // for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
-    //     b->SetLinearVelocity(b2Vec2(0,0));
-    //     b->SetAngularVelocity(0);
-    // }
 
     ee_body->SetActive(false);
 
@@ -725,6 +718,7 @@ void set_sensor_status(b2Body* body, bool isSensor) {
 	
   void draw_table (std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses, std::vector<std::string> colors, geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal)
   {
+
     for (int i=0; i<centroids.size(); i++) {
       b2BodyDef myBodyDef;
       myBodyDef.type = b2_dynamicBody; //this will be a dynamic body
@@ -735,13 +729,15 @@ void set_sensor_status(b2Body* body, bool isSensor) {
       myBodyDef.position.Set(x_out,y_out);
 	    
       b2Body* dynamicBody1 = m_world->CreateBody(&myBodyDef);
-	  
+
+  
       b2CircleShape circleShape;
       circleShape.m_p.Set(0, 0); //position, relative to body position
       circleShape.m_radius = radiuses[i]*pix_coeff; //radius	  
 	    
       b2FixtureDef myFixtureDef;
       myFixtureDef.friction = 0.99f;
+      myFixtureDef.density = 1.0f;
       myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
       dynamicBody1->CreateFixture(&myFixtureDef); //add a fixture to the body
 
@@ -753,8 +749,8 @@ void set_sensor_status(b2Body* body, bool isSensor) {
       jd.bodyA = ground;
       jd.bodyB = dynamicBody1;
       jd.collideConnected = true;
-      jd.maxForce = 100000000; //mass * gravity;
-      jd.maxTorque = 100000000; //mass * radius * gravity;
+      jd.maxForce = 0.05; //mass * gravity;
+      jd.maxTorque = 0.05; //mass * radius * gravity;
 
 			m_world->CreateJoint(&jd);
 
@@ -794,17 +790,21 @@ void set_sensor_status(b2Body* body, bool isSensor) {
     b2FixtureDef sd;
     sd.shape = &shape;
     sd.friction = 0.99f;
+    sd.density = 0.0f;
+    sd.restitution = 0.4;
 	  
     double table_x_len = 1.5;
     double table_y_len = 0.8;
     double robot_base_offset = 0.1;
 
+    // b2BodyDef bd;
+    // bd.active = false;
+    // //bd.position.Set(0.0f, table_y_len/2-robot_base_offset);
+    // bd.position.Set(0.0f, 0.0f);
     b2BodyDef bd;
-    bd.active = false;
-    //bd.position.Set(0.0f, table_y_len/2-robot_base_offset);
     bd.position.Set(0.0f, 0.0f);
     ground = m_world->CreateBody(&bd);
-	  
+    
     // Left vertical
     shape.Set(pix_coeff* b2Vec2(-table_x_len/2,-robot_base_offset), pix_coeff*b2Vec2(-table_x_len/2, table_y_len - robot_base_offset));
     //shape.Set(pix_coeff*b2Vec2(-table_x_len/2,-table_y_len/2), pix_coeff*b2Vec2(-table_x_len/2, table_y_len/2));
