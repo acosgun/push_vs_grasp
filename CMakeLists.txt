@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS  roscpp
   rviz_visual_tools
   genmsg
   message_generation
+  cv_bridge
 )
 
 ## System dependencies are found with CMake's conventions
@@ -65,6 +66,8 @@ find_package(OpenCV REQUIRED core imgproc highgui)
 add_service_files(
   FILES
   push_action.srv
+  reset.srv
+
 )
 
 generate_messages(

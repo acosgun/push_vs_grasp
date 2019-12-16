@@ -8,6 +8,7 @@
 #include <ros/ros.h>
 #include <geometry_msgs/PointStamped.h>
 #include <push_vs_grasp/push_action.h>
+#include <push_vs_grasp/reset.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
@@ -47,10 +48,17 @@ class Box2DPlanner: public Test
   
  
  public:
+   bool currently_simulate = true;
 
- void random_objects() {
+
+ void random_objects(bool reset) {
    
    srand(seed++);
+
+   while (m_world->IsLocked()) {
+     std::cout << "Waiting for world to be free..." << std::endl;
+   }
+
 
 
   float coll_radius = 0.08F;
@@ -111,8 +119,12 @@ class Box2DPlanner: public Test
   goal_radiuses.push_back(0.2F);
   goal_radiuses.push_back(0.2F);
 
-  test_derived->setup_objects(objects, radiuses, colours, r1, r2, goal_radiuses);
-
+  if (reset) {
+    test_derived->reset(objects, radiuses, colours, r1, r2, goal_radiuses);// = static_cast<ApplyForce*>(test);
+  } else {
+    test_derived->setup_objects(objects, radiuses, colours, r1, r2, goal_radiuses);
+  }
+ 
  }
  cv::Mat push(float start_x, float start_y, float angle, float dist, double& dist_out) {
    return test_derived->push_action(start_x, start_y, angle, dist, dist_out);
@@ -123,7 +135,7 @@ class Box2DPlanner: public Test
     //init_actionlib();
     setup_box2d(); //defined in Main.h
     test_derived = static_cast<ApplyForce*>(test);  
-    random_objects();
+    random_objects(false);
   }
   
     ~Box2DPlanner() {
@@ -143,6 +155,8 @@ sensor_msgs::Image cv_to_ros(cv::Mat img) {
   //header.seq = counter; // user defined counter
   header.stamp = ros::Time::now(); // time
   img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, img);
+
+  img_bridge.toImageMsg(img_msg); // from cv_bridge to sensor_msgs::Image
   
   return img_msg;
 
@@ -150,25 +164,29 @@ sensor_msgs::Image cv_to_ros(cv::Mat img) {
 
 bool do_action(push_vs_grasp::push_action::Request &req, push_vs_grasp::push_action::Response &res) {
   double dist;
-  cv::Mat img = push(req.start_x, req.start_y, req.angle, req.dist, dist);
 
+
+std::cout << "hello" << std::endl;
+  cv::Mat img = push(req.start_x, req.start_y, req.angle, req.dist, dist);
   res.done = dist == 0;
   res.reward = dist;
 
+
   res.next_state = cv_to_ros(img);
+
+
+  return true;
+
 
 }
 
 
-bool reset_action(push_vs_grasp::push_action::Request &req, push_vs_grasp::push_action::Response &res) {
-  double dist;
-  cv::Mat img = push(req.start_x, req.start_y, req.angle, req.dist, dist);
-
-  res.done = dist == 0;
-  res.reward = dist;
-
-  res.next_state = cv_to_ros(img);
-
+bool reset_action(push_vs_grasp::reset::Request &req, push_vs_grasp::reset::Response &res) {
+  //test_derived->reset(objects, radiuses, colours, r1, r2, goal_radiuses);
+  currently_simulate = false;
+random_objects(true);
+currently_simulate = true;
+return true;
 }
 
 };
@@ -177,24 +195,28 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "box2d_planner_server");
   ros::NodeHandle node_handle("~");
 
+  ros::NodeHandle nh("");
+
   Box2DPlanner B2DP(&node_handle);
 
-  ros::ServiceServer ser = node_handle.advertiseService("push_action", &Box2DPlanner::do_action, &B2DP);
+  ros::ServiceServer ser = nh.advertiseService("push_action", &Box2DPlanner::do_action, &B2DP);
 
-  ros::ServiceServer reset = node_handle.advertiseService("reset_action", &Box2DPlanner::reset_action, &B2DP);
+  ros::ServiceServer reset = nh.advertiseService("reset_action", &Box2DPlanner::reset_action, &B2DP);
+
+    ros::AsyncSpinner spinner(2);
+  spinner.start();
 
 
-  draw_stuff(true, true);
-  double dist;
-  B2DP.push(10, 20, 1.57, 30, dist);
-
-  while (ros::ok()) {
-            draw_stuff(true, true);
-            // B2DP.push(-0.5, -0.5, 1.57, 1);              
+  while (ros::ok() && B2DP.currently_simulate) {
+    try {
+      draw_stuff(true, true);
+    }
+    catch (...) {
+      
+    }
   }
   
-  ros::AsyncSpinner spinner(2);
-  spinner.start();
+
   ros::waitForShutdown();
   return 0;
 } 

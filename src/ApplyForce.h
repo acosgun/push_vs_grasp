@@ -108,6 +108,10 @@ class ApplyForce : public Test
       dynamicBody1->SetUserData(myStruct);      
     }
   }
+
+  void destroy_objects() {
+
+  }
    
   void destroy_objects_with_exceptions(std::vector<int> exception_ids)
   {
@@ -122,14 +126,16 @@ class ApplyForce : public Test
       }
   }
 
+  void reset(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses, std::vector<std::string> colors, geometry_msgs::PointStamped red_goal, geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses) {
+    destroy_all_objects();
+    setup_objects(centroids, radiuses, colors, red_goal, blue_goal, goal_radiuses);
+  }
+
   void destroy_all_objects()
   {
-    for (b2Body* b = m_world->GetBodyList(); b;)
-      {
-	b2Body* next = b->GetNext();
-	m_world->DestroyBody(b);
-	b = next;
-      }
+         for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
+            m_world->DestroyBody(b);
+         }
   }
   
   void robot_to_box2d_frame(const double x_in, const double y_in, double& x_out, double& y_out) {
@@ -139,7 +145,7 @@ class ApplyForce : public Test
   }
 
 void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y_out) {
-    x_out = 10 * (x_in + 37.5);
+    x_out = 10 * (x_in + 37.5) + 100;
     y_out = -(10 * y_in + 100) + 500;
 
     //y = 0 -> max
@@ -220,10 +226,6 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
     blue_goal_body = get_objects(blue_goal_str)[0];
 
 
-  std::vector<int> displaced_bodies = get_displaced_objects();
-  std::cout << "---- # displaced_bodies: " << displaced_bodies.size() << std::endl;
-
-
     PushDef push_def;
     double goal_threshold = 0.0008;
     double ee_multiplier = 1.25;
@@ -231,11 +233,8 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
     double magnitude = 0.05;
     b2Vec2 linear_velocity = calc_linear_velocity2(dist, angle, magnitude);
 
-    //double angle = calc_angle(b, goal_body);
-
     set_sensor_status(ee_body, false);
     set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
-    
     ee_body->SetTransform(position, angle);
 
     ee_body->SetActive(true);
@@ -248,40 +247,39 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
 
       double d = dist - get_dist_moved(start_x, start_y, ee_body);
 
+
+
       bool collision = coll_check_with_robot_base(ee_body);
-      int count = 0;
-      for (b2Contact* contact = m_world->GetContactList(); contact; contact = contact->GetNext())
-        {
-          count++;
-        }
 
       if (d < goal_threshold*pix_coeff || collision) {
-        //  std::cout << "vel is not set" << std::endl;
-
         ee_body->SetLinearVelocity(b2Vec2(0,0));
-        set_sensor_status(ee_body, true);
-        break;
+         set_sensor_status(ee_body, true);
+         break;
       }
     
        else {
-        //  std::cout << "vel should be set" << std::endl;
-         ee_body->SetLinearVelocity(-linear_velocity);
-         draw_stuff(true, true);
-       }
+          ee_body->SetLinearVelocity(-linear_velocity);
+          
+        }
 
     }
 
-    push_def.push_end = ee_body->GetPosition();   
+    std::cout << "reached here" << std::endl;
+    push_def.push_end = ee_body->GetPosition(); 
+
+    // for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
+    //     b->SetLinearVelocity(b2Vec2(0,0));
+    //     b->SetAngularVelocity(0);
+    // }
+
     ee_body->SetActive(false);
 
-    for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
-        b->SetLinearVelocity(b2Vec2(0,0));
-    }
+
 
 
     cv::Mat data = get_ocv_img_from_gl_img();
     out_dist = calc_heuristic();
-    //cv::imwrite("/home/rhys/some.jpg", data);
+
 
     return data;
 
@@ -289,7 +287,7 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
 
   cv::Mat get_ocv_img_from_gl_img()
 {
-    cv::Mat img(500, 500, CV_8UC3, cv::Scalar(0,0, 0));
+    cv::Mat img(500, 900, CV_8UC3, cv::Scalar(0,0, 0));
 
      for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
 
@@ -300,7 +298,6 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
 
         double x_out, y_out;
         box2d_to_img(b->GetPosition().x,b->GetPosition().y, x_out, y_out);
-        std::cout << "X: " << x_out << "Y: " << y_out << std::endl;
         cv::circle(img, cv::Point(x_out, y_out), 0.08 * pix_coeff*10, colour, -1);
 
       }
@@ -309,7 +306,6 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
 
         double x_out, y_out;
         box2d_to_img(b->GetPosition().x,b->GetPosition().y, x_out, y_out);
-        std::cout << "X: " << x_out << "Y: " << y_out << std::endl;
         cv::circle(img, cv::Point(x_out, y_out), 0.08 * pix_coeff * 10, colour, -1);
 
       }
@@ -452,15 +448,6 @@ void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y
       placement.point.x = push_end_x;
       placement.point.y = push_end_y;
       goal_reached = false;
-
-      /*
-      std::cout << "START "  <<std::endl;
-      std::cout << push_start_x<< std::endl;
-      std::cout << push_start_y<< std::endl;
-      std::cout << "END "  <<std::endl;
-      std::cout << push_end_x<< std::endl;
-      std::cout << push_end_y<< std::endl;
-      */
 
       simulate_push(displaced_bodies[min_index], true, true);
       load_world(state);      
@@ -759,6 +746,18 @@ void set_sensor_status(b2Body* body, bool isSensor) {
       dynamicBody1->CreateFixture(&myFixtureDef); //add a fixture to the body
 
       dynamicBody1->SetActive(true);
+
+      b2FrictionJointDef jd;
+      jd.localAnchorA.SetZero();
+      jd.localAnchorB.SetZero();
+      jd.bodyA = ground;
+      jd.bodyB = dynamicBody1;
+      jd.collideConnected = true;
+      jd.maxForce = 100000000; //mass * gravity;
+      jd.maxTorque = 100000000; //mass * radius * gravity;
+
+			m_world->CreateJoint(&jd);
+
 
       // b2FrictionJointDef friction_joint_def;
 
