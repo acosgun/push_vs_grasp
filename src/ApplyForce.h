@@ -98,10 +98,12 @@ public:
     set_sensor_status(ee_body, true);
     ee_body->SetTransform(b2Vec2(1000, 1000), 0);
 
+    std::cout << "SHOULD NOT BE HERE..." << std::endl;
+
     // delete all objects with non -1 ID
     std::vector<int> exception_ids;
     exception_ids.push_back(-1);
-    destroy_objects_with_exceptions(exception_ids);
+    // destroy_objects_with_exceptions(exception_ids);
 
     // create bodies from scratch
     for (int i = 0; i < state.bodies.size(); i++)
@@ -128,19 +130,19 @@ public:
   {
   }
 
-  void destroy_objects_with_exceptions(std::vector<int> exception_ids)
-  {
-    for (b2Body* b = m_world->GetBodyList(); b;)
-    {
-      b2Body* next = b->GetNext();
-      int id = get_body_id(b);
-      if (std::find(exception_ids.begin(), exception_ids.end(), id) == exception_ids.end())
-      {  // does not contain
-        m_world->DestroyBody(b);
-      }
-      b = next;
-    }
-  }
+  // void destroy_objects_with_exceptions(std::vector<int> exception_ids)
+  // {
+  //   for (b2Body* b = m_world->GetBodyList(); b;)
+  //   {
+  //     b2Body* next = b->GetNext();
+  //     int id = get_body_id(b);
+  //     if (std::find(exception_ids.begin(), exception_ids.end(), id) == exception_ids.end())
+  //     {  // does not contain
+  //       m_world->DestroyBody(b);
+  //     }
+  //     b = next;
+  //   }
+  // }
 
   void reset(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses,
              std::vector<std::string> colors, geometry_msgs::PointStamped red_goal,
@@ -150,11 +152,28 @@ public:
     setup_objects(centroids, radiuses, colors, red_goal, blue_goal, goal_radiuses);
   }
 
+  void run_safely(const std::function<void()>& f)
+  {
+    while (true)
+    {
+      try
+      {
+        f();
+        return;
+      }
+      catch (...)
+      {
+        continue;
+      }
+    }
+  }
+
   void destroy_all_objects()
   {
     for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())
     {
-      m_world->DestroyBody(b);
+      auto destroy = [&]() { m_world->DestroyBody(b); };
+      run_safely(destroy);
     }
   }
 
@@ -169,17 +188,7 @@ public:
   {
     x_out = 10 * (x_in + 37.5) + 100;
     y_out = -(10 * y_in + 100) + 500;
-
-    // y = 0 -> max
-    // y = max -> 0
-
     return;
-
-    //     float min_x = (-0.7F + coll_radius);
-    // float max_x = 0;
-
-    // float min_y = -(0.75F-coll_radius);
-    // float max_y = 0.75F-coll_radius;
   }
 
   void box2d_to_robot_frame(const double x_in, const double y_in, double& x_out, double& y_out)
@@ -189,31 +198,14 @@ public:
     return;
   }
 
-  b2Vec2 calc_linear_velocity(b2Body* b_from, b2Body* b_to, double out_magnitude)
-  {
-    b2Vec2 linear_velocity;
-    double diff_x = b_from->GetPosition().x - b_to->GetPosition().x;
-    double diff_y = b_from->GetPosition().y - b_to->GetPosition().y;
-    double mag = sqrt(diff_x * diff_x + diff_y * diff_y);
-    double coeff = out_magnitude / mag;
-    linear_velocity.x = diff_x * coeff;
-    linear_velocity.y = diff_y * coeff;
-    return linear_velocity;
-  }
-
   b2Vec2 calc_linear_velocity2(float dist, float angle, double out_magnitude)
   {
     b2Vec2 linear_velocity;
 
-    double diff_x = dist * sin(angle);
-    double diff_y = dist * cos(angle);
+    linear_velocity.x = -sin(angle) * out_magnitude;
+    linear_velocity.y = cos(angle) * out_magnitude;
 
-    double mag = sqrt(diff_x * diff_x + diff_y * diff_y);
-
-    double coeff = out_magnitude / mag;
-
-    linear_velocity.x = diff_x * coeff;
-    linear_velocity.y = diff_y * coeff;
+    std::cout << angle * 180 / M_PI << std::endl;
 
     return linear_velocity;
   }
@@ -243,52 +235,76 @@ public:
 
   cv::Mat push_action(float start_x, float start_y, float angle, float dist, double& out_dist)
   {
+    std::cout << 0 << std::endl;
     b2Vec2 position = b2Vec2(start_x, start_y);
-
+    std::cout << 1 << std::endl;
     red_goal_body = get_objects(red_goal_str)[0];
     blue_goal_body = get_objects(blue_goal_str)[0];
+    std::cout << 2 << std::endl;
 
     PushDef push_def;
     double goal_threshold = 0.02;
     double ee_multiplier = 1.25;
+    std::cout << 3 << std::endl;
 
     double magnitude = 0.1;
     b2Vec2 linear_velocity = calc_linear_velocity2(dist, angle, magnitude);
+    std::cout << 4 << std::endl;
 
     set_sensor_status(ee_body, false);
     set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
-    ee_body->SetTransform(position, angle);
+    std::cout << 5 << std::endl;
 
-    ee_body->SetActive(true);
-    ee_body->SetLinearVelocity(linear_velocity);
+    auto set_velo = [&]() {
+      ee_body->SetTransform(position, angle);
+
+      ee_body->SetActive(true);
+
+      ee_body->SetLinearVelocity(linear_velocity);
+    };
+    run_safely(set_velo);
 
     push_def.push_start = ee_body->GetPosition();
 
     while (true)
     {
-      double d = dist - get_dist_moved(start_x, start_y, ee_body);
+      std::cout << 11 << std::endl;
 
+      double d = dist - get_dist_moved(start_x, start_y, ee_body);
+      // std::cout << d << std::endl;
+      // std::cout << ee_body->GetLinearVelocity().x << "," << ee_body->GetLinearVelocity().y << std::endl;
       bool collision = coll_check_with_robot_base(ee_body);
+      std::cout << 12 << std::endl;
 
       if (d < goal_threshold * pix_coeff || collision)
       {
-        ee_body->SetLinearVelocity(b2Vec2(0, 0));
-        set_sensor_status(ee_body, true);
+        auto set_finished = [&]() {
+          ee_body->SetLinearVelocity(b2Vec2(0, 0));
+          set_sensor_status(ee_body, true);
+        };
+        run_safely(set_finished);
+
         break;
       }
 
       else
       {
-        ee_body->SetLinearVelocity(-linear_velocity);
+        auto set_cont_velocity = [&]() { ee_body->SetLinearVelocity(linear_velocity); };
+        run_safely(set_cont_velocity);
       }
     }
 
     push_def.push_end = ee_body->GetPosition();
+    std::cout << 15 << std::endl;
 
     ee_body->SetActive(false);
+    std::cout << 16 << std::endl;
 
     cv::Mat data = get_ocv_img_from_gl_img();
+    std::cout << 17 << std::endl;
+
     out_dist = calc_heuristic();
+    std::cout << 18 << std::endl;
 
     return data;
   }
@@ -339,7 +355,7 @@ public:
       goal_body = blue_goal_body;
 
     double magnitude = 10.0;
-    b2Vec2 linear_velocity = calc_linear_velocity(b, goal_body, magnitude);
+    b2Vec2 linear_velocity// = calc_linear_velocity(b, goal_body, magnitude);
     double angle = calc_angle(b, goal_body);
     set_sensor_status(ee_body, true);
     set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
@@ -780,8 +796,10 @@ public:
       double x_out, y_out;
       robot_to_box2d_frame(centroids[i].point.x, centroids[i].point.y, x_out, y_out);
       myBodyDef.position.Set(x_out, y_out);
+      b2Body* dynamicBody1;
 
-      b2Body* dynamicBody1 = m_world->CreateBody(&myBodyDef);
+      auto create_db1 = [&]() { dynamicBody1 = m_world->CreateBody(&myBodyDef); };
+      run_safely(create_db1);
 
       b2CircleShape circleShape;
       circleShape.m_p.Set(0, 0);                       // position, relative to body position
@@ -790,8 +808,10 @@ public:
       b2FixtureDef myFixtureDef;
       myFixtureDef.friction = 0.99f;
       myFixtureDef.density = 1.0f;
-      myFixtureDef.shape = &circleShape;           // this is a pointer to the shape above
-      dynamicBody1->CreateFixture(&myFixtureDef);  // add a fixture to the body
+      myFixtureDef.shape = &circleShape;  // this is a pointer to the shape above
+
+      auto create_fdb1 = [&]() { dynamicBody1->CreateFixture(&myFixtureDef); };
+      run_safely(create_fdb1);
 
       dynamicBody1->SetActive(true);
 
@@ -804,16 +824,8 @@ public:
       jd.maxForce = 0.05;   // mass * gravity;
       jd.maxTorque = 0.05;  // mass * radius * gravity;
 
-      m_world->CreateJoint(&jd);
-
-      // b2FrictionJointDef friction_joint_def;
-
-      // friction_joint_def.Initialize(ground,dynamicBody1,b2Vec2(0,0));
-
-      // friction_joint_def.maxForce =1000;
-      // friction_joint_def.maxTorque=1000;
-
-      // b2FrictionJoint* joint = (b2FrictionJoint*)m_world->CreateJoint( &friction_joint_def );
+      auto create_jd = [&]() { m_world->CreateJoint(&jd); };
+      run_safely(create_jd);
 
       bodyUserData* myStruct = new bodyUserData;
       myStruct->id = i;
@@ -851,24 +863,26 @@ public:
     // bd.position.Set(0.0f, 0.0f);
     b2BodyDef bd;
     bd.position.Set(0.0f, 0.0f);
-    ground = m_world->CreateBody(&bd);
+
+    auto create_ground = [&]() { ground = m_world->CreateBody(&bd); };
+    run_safely(create_ground);
 
     // Left vertical
     shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, -robot_base_offset),
               pix_coeff * b2Vec2(-table_x_len / 2, table_y_len - robot_base_offset));
     // shape.Set(pix_coeff*b2Vec2(-table_x_len/2,-table_y_len/2), pix_coeff*b2Vec2(-table_x_len/2, table_y_len/2));
 
-    ground->CreateFixture(&sd);
+    // ground->CreateFixture(&sd);
 
     // Right vertical
     shape.Set(pix_coeff * b2Vec2(table_x_len / 2, -robot_base_offset),
               pix_coeff * b2Vec2(table_x_len / 2, table_y_len - robot_base_offset));
-    ground->CreateFixture(&sd);
+    // ground->CreateFixture(&sd);
 
     // Top horizontal
     shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, table_y_len - robot_base_offset),
               pix_coeff * b2Vec2(table_x_len / 2, table_y_len - robot_base_offset));
-    ground->CreateFixture(&sd);
+    // ground->CreateFixture(&sd);
 
     // std::cout<< "TABLE X: " <<pix_coeff*table_x_len/2 << " Y: " << pix_coeff*(table_y_len -
     // robot_base_offset)<<std::endl;
@@ -876,13 +890,17 @@ public:
     // Bottom horizontal
     shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, -robot_base_offset),
               pix_coeff * b2Vec2(table_x_len / 2, -robot_base_offset));
-    ground->CreateFixture(&sd);
+    // ground->CreateFixture(&sd);
+    ground->SetActive(true);
 
     // Robot Base
     b2BodyDef myBodyDef;
     myBodyDef.type = b2_staticBody;
     myBodyDef.position.Set(0.0, 0.0);
-    robot_base_body = m_world->CreateBody(&myBodyDef);
+
+    auto create_base = [&]() { robot_base_body = m_world->CreateBody(&myBodyDef); };
+    run_safely(create_base);
+
     b2CircleShape circleShape;
     circleShape.m_p.Set(0, 0);                // position, relative to body position
     circleShape.m_radius = 0.05 * pix_coeff;  // radius
@@ -918,7 +936,11 @@ public:
     b2BodyDef goal_body_def;
     goal_body_def.type = b2_staticBody;
     goal_body_def.position.Set(red_goal_x_box2d, red_goal_y_box2d);
-    b2Body* goal_body = m_world->CreateBody(&goal_body_def);
+    b2Body* goal_body;
+
+    auto create_body = [&]() { goal_body = m_world->CreateBody(&goal_body_def); };
+    run_safely(create_body);
+
     b2CircleShape goal_body_shape;
     goal_body_shape.m_p.Set(0, 0);
     goal_body_shape.m_radius = goal_radiuses[0] * pix_coeff;
@@ -937,7 +959,11 @@ public:
     b2BodyDef goal_body_def_2;
     goal_body_def_2.type = b2_staticBody;
     goal_body_def_2.position.Set(blue_goal_x_box2d, blue_goal_y_box2d);
-    b2Body* goal_body_2 = m_world->CreateBody(&goal_body_def_2);
+    b2Body* goal_body_2;
+
+    auto create_body_2 = [&]() { goal_body_2 = m_world->CreateBody(&goal_body_def_2); };
+    run_safely(create_body_2);
+
     b2CircleShape goal_body_shape_2;
     goal_body_shape_2.m_p.Set(0, 0);
     goal_body_shape_2.m_radius = goal_radiuses[1] * pix_coeff;

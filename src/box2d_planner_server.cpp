@@ -162,8 +162,8 @@ public:
   {
     double dist;
 
-    std::cout << "hello" << std::endl;
     cv::Mat img = push(req.start_x, req.start_y, req.angle, req.dist, dist);
+    std::cout << "reached here" << std::endl;
     res.done = dist == 0;
     res.reward = dist;
 
@@ -198,14 +198,20 @@ int main(int argc, char** argv)
   ros::AsyncSpinner spinner(2);
   spinner.start();
 
-  while (ros::ok() && B2DP.currently_simulate)
+  while (ros::ok())
   {
+    if (!B2DP.currently_simulate)
+    {
+      std::cout << "Not stepping through world..." << std::endl;
+      continue;
+    }
     try
     {
       draw_stuff(true, true);
     }
     catch (...)
     {
+      std::cout << "failed to draw..." << std::endl;
     }
   }
 

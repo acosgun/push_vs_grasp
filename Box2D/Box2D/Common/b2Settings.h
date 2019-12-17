@@ -24,7 +24,7 @@
 #include <float.h>
 
 #define B2_NOT_USED(x) ((void)(x))
-#define b2Assert(A) assert(A)
+
 
 typedef signed char	int8;
 typedef signed short int16;
@@ -129,6 +129,9 @@ typedef double float64;
 
 /// Implement this function to use your own memory allocator.
 void* b2Alloc(int32 size);
+
+
+void b2Assert(bool a);
 
 /// If you implement b2Alloc, you should also implement this function.
 void b2Free(void* mem);

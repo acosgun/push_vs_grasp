@@ -10,6 +10,8 @@ import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
+import random
+
 
 
 HEIGHT = 500
@@ -36,12 +38,13 @@ class CustomEnv(gym.Env):
 
         self.push_service = rospy.ServiceProxy('/push_action', push_action)
 
-        
-        x = np.array([10,20,1.57,30])
-        print(x)
+                
+
         while True:
+            x = np.array([random.random() * 50,random.random() * 50,random.random() * 2 * math.pi,20 + random.random() * 30])
+            print(x)
             self.step(x)
-            #self.reset()
+            self.reset()
             raw_input()
 
             
@@ -49,6 +52,7 @@ class CustomEnv(gym.Env):
     def step(self, action):
         #input is a numpy array containing the four parameters for the action
         print(action)
+        print(action[2] * 180 / math.pi)
         start_x = action[0]
         start_y = action[1]
         angle = action[2]

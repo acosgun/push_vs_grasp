@@ -42,3 +42,12 @@ void b2Log(const char* string, ...)
 	vprintf(string, args);
 	va_end(args);
 }
+
+void b2Assert(bool a) {
+	if (!a) {
+		throw 20;
+
+	}
+
+
+}
