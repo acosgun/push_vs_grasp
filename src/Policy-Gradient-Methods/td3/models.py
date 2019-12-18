@@ -25,13 +25,13 @@ class Critic(nn.Module):
 
     def forward(self, x, a):
       
-        x = F.relu(self.conv1(x))
+        x = F.leaky_relu(self.conv1(x))
         x = self.flatten(x)
-        x = F.relu(self.linear1(x))
+        x = F.leaky_relu(self.linear1(x))
         xa_cat = torch.cat([x,a], 1)
-        xa = F.relu(self.linear2(xa_cat))
-        xa = F.relu(self.linear3(xa))
-        qval = self.linear4(xa)
+        xa = F.leaky_relu(self.linear2(xa_cat))
+        xa = F.leaky_relu(self.linear3(xa))
+        qval = F.sigmoid(self.linear4(xa))
 
         return qval
 
@@ -59,9 +59,9 @@ class Actor(nn.Module):
     def forward(self, obs): 
         
         
-        x = F.relu(self.conv1(obs))
+        x = F.leaky_relu(self.conv1(obs))
         x = self.flatten(x)
-        x = F.relu(self.linear2(x))
-        x = torch.tanh(self.linear3(x))
+        x = F.leaky_relu(self.linear2(x))
+        x = F.sigmoid(self.linear3(x))
 
         return x

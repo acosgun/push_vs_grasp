@@ -7,11 +7,12 @@ class BasicBuffer:
 
     def __init__(self, max_size):
         self.max_size = max_size
-        self.buffer = deque(maxlen=max_size)
+        self.buffer = deque(maxlen=max_size * 2/3)
+        self.no_reward_buffer = deque(maxlen=max_size / 3)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-    def push(self, state, action, reward, next_state, done):
+    def push(self, state, action, reward, next_state, done, reward_change):
 
         unsqueeze = lambda x : torch.unsqueeze(x,0)
 
@@ -23,7 +24,10 @@ class BasicBuffer:
         experience = (state, action, reward, next_state, done)
 
         #experience = (state, action, np.array([reward]), next_state, done)
-        self.buffer.append(experience)
+        if reward_change:
+            self.buffer.append(experience)
+        else:
+            self.no_reward_buffer.append(experience)
 
     def sample(self, batch_size):
         print("length of buffer is: " + str(len(self)))
@@ -33,7 +37,7 @@ class BasicBuffer:
         next_state_batch = torch.FloatTensor([]).to(self.device)
         done_batch = torch.Tensor([]).to(self.device)
 
-        batch = random.sample(self.buffer, batch_size)
+        batch = random.sample(self.buffer, batch_size * 2/3) + random.sample(self.no_reward_buffer, batch_size / 3)
 
         for experience in batch:
 
@@ -77,4 +81,4 @@ class BasicBuffer:
         return (state_batch, action_batch, reward_batch, next_state_batch, done_batch)
 
     def __len__(self):
-        return len(self.buffer)
+        return int(len(self.buffer))

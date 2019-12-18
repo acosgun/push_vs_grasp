@@ -18,8 +18,10 @@ critic_lr = 1e-3
 actor_lr = 1e-3
 
 max_episodes = 100
-max_steps = 500
+max_steps = 10
 batch_size = 32
 
 agent = TD3Agent(env, gamma, tau, buffer_maxlen, delay_step, noise_std, bound, critic_lr, actor_lr)
-episode_rewards = mini_batch_train(env, agent, 50, 500, 32)
+# def mini_batch_train(env, agent, max_episodes, max_steps, batch_size):
+
+episode_rewards = mini_batch_train(env, agent, max_episodes, max_steps, batch_size)

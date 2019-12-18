@@ -123,11 +123,7 @@ public:
       test_derived->setup_objects(objects, radiuses, colours, r1, r2, goal_radiuses);
     }
   }
-  cv::Mat push(float start_x, float start_y, float angle, float dist, double& dist_out)
-  {
-    return test_derived->push_action(start_x, start_y, angle, dist, dist_out);
-  }
-
+  
   Box2DPlanner(ros::NodeHandle* nodehandle) : virgin(true)
   {  // , nh_(*nodehandle), as_(nh_, "/box2d_planner", boost::bind(&Box2DPlanner::executeCB, this, _1),false) {
     // init_actionlib();
@@ -160,11 +156,12 @@ public:
 
   bool do_action(push_vs_grasp::push_action::Request& req, push_vs_grasp::push_action::Response& res)
   {
-    double dist;
+    double heuristic;
 
-    cv::Mat img = push(req.start_x, req.start_y, req.angle, req.dist, dist);
-    res.done = dist == 0;
-    res.reward = dist;
+    cv::Mat img = test_derived->push_action(req.start_x, req.start_y, req.end_x, req.end_y, heuristic);
+
+    res.done = heuristic == 0;
+    res.reward = heuristic;
 
     res.next_state = cv_to_ros(img);
 

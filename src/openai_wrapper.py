@@ -38,22 +38,20 @@ class CustomEnv(gym.Env):
 
         self.push_service = rospy.ServiceProxy('/push_action', push_action)
 
-        self.step(np.array([10,10,10,-50]))
-           
+        # self.step(np.array([10,10,20,10]))
+
+
 
     def step(self, action):
         #input is a numpy array containing the four parameters for the action
-        print(action)
-        start_x = action[0] + 15
-        start_y = action[1] + 15
-        angle = action[2]
-        push_dist = action[3] * 20
+        start_x = 75 * (action[0] - 0.5)
+        start_y = action[1] * 30 + 5
+        end_x = 75 * (action[2] - 0.5)
+        end_y = action[3] * 30 + 5
 
-        response = self.push_service(start_x, start_y, angle, push_dist)
+        response = self.push_service(start_x, start_y, end_x, end_y)
 
         img = response.next_state
-
-        print(response.reward)
 
         cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
         cv2.imwrite("/home/rhys/pic.png", cv_image)
@@ -77,4 +75,4 @@ class CustomEnv(gym.Env):
     def render(self, mode='human', close=False):
         pass
 
-CustomEnv()
+# CustomEnv()

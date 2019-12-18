@@ -35,8 +35,8 @@ struct PushDef
 
 void print_push_def(PushDef d)
 {
-  std::cout << "Start: (" << d.push_start.x << "," << d.push_start.y << ")" << std::endl;
-  std::cout << "End: (" << d.push_end.x << "," << d.push_end.y << ")" << std::endl;
+  
+  
 }
 
 class ApplyForce : public Test
@@ -64,6 +64,7 @@ private:
   b2Body* red_goal_body;
   b2Body* blue_goal_body;
   b2Body* ground;
+  b2Body* ground2;
 
 public:
   ApplyForce()
@@ -98,7 +99,7 @@ public:
     set_sensor_status(ee_body, true);
     ee_body->SetTransform(b2Vec2(1000, 1000), 0);
 
-    std::cout << "SHOULD NOT BE HERE..." << std::endl;
+    
 
     // delete all objects with non -1 ID
     std::vector<int> exception_ids;
@@ -189,14 +190,12 @@ public:
     return;
   }
 
-  b2Vec2 calc_linear_velocity2(float angle, double out_magnitude)
+  b2Vec2 calc_linear_velocity2(float start_x, float start_y, float end_x, float end_y, double mag, double out_magnitude)
   {
     b2Vec2 linear_velocity;
 
-    linear_velocity.x = -sin(angle) * out_magnitude;
-    linear_velocity.y = cos(angle) * out_magnitude;
-
-    std::cout << angle * 180 / M_PI << std::endl;
+    linear_velocity.x = (end_x - start_x) * out_magnitude/mag;
+    linear_velocity.y = (end_y - start_y) * out_magnitude/mag;
 
     return linear_velocity;
   }
@@ -208,10 +207,25 @@ public:
     return atan2(diff_y, diff_x) + M_PI / 2;
   }
 
+  double calc_angle2(float start_x, float start_y, float end_x, float end_y)
+  {
+    double diff_x = start_x - end_x;
+    double diff_y = start_y - end_y;
+    return atan2(diff_y, diff_x) + M_PI / 2;
+  }
+
   double get_dist_between_bodies(b2Body* b_from, b2Body* b_to)
   {
     double diff_x = b_from->GetPosition().x - b_to->GetPosition().x;
     double diff_y = b_from->GetPosition().y - b_to->GetPosition().y;
+    double mag = sqrt(diff_x * diff_x + diff_y * diff_y);
+    return mag;
+  }
+
+  double get_dist_between_point(float start_x, float start_y, float end_x, float end_y)
+  {
+    double diff_x = start_x - end_x;
+    double diff_y = start_y - end_y;
     double mag = sqrt(diff_x * diff_x + diff_y * diff_y);
     return mag;
   }
@@ -224,24 +238,26 @@ public:
     return mag;
   }
 
-  cv::Mat push_action(float start_x, float start_y, float angle, float dist, double& out_dist)
+  cv::Mat push_action(float start_x, float start_y, float end_x, float end_y, double& out_dist)
   {
     b2Vec2 position = b2Vec2(start_x, start_y);
 
     red_goal_body = get_objects(red_goal_str)[0];
-    std::cout << red_goal_body->GetPosition().x << "," << red_goal_body->GetPosition().y << std::endl;
     blue_goal_body = get_objects(blue_goal_str)[0];
-    std::cout << blue_goal_body->GetPosition().x << "," << blue_goal_body->GetPosition().y << std::endl;
-
+  
     calc_heuristic();
 
 
     PushDef push_def;
     double goal_threshold = 0.02;
     double ee_multiplier = 1.25;
-    dist = dist * (dist > 0 ? +1 : -1);
-    double magnitude = 0.1;; //* (dist > 0 ? +1 : -1);
-    b2Vec2 linear_velocity = calc_linear_velocity2(angle, magnitude);
+
+    double magnitude = 0.1; //* (dist > 0 ? +1 : -1);
+
+    float angle = calc_angle2(start_x, start_y, end_x, end_y);
+    float dist = get_dist_between_point(start_x, start_y, end_x, end_y);
+
+    b2Vec2 linear_velocity = calc_linear_velocity2(start_x, start_y, end_x, end_y, dist, magnitude);
 
     set_sensor_status(ee_body, false);
     set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
@@ -253,6 +269,7 @@ public:
 
       ee_body->SetLinearVelocity(linear_velocity);
     };
+
     run_safely(set_velo);
 
     push_def.push_start = ee_body->GetPosition();
@@ -260,6 +277,7 @@ public:
     while (true)
     {
       double d = dist - get_dist_moved(start_x, start_y, ee_body);
+
 
       bool collision = coll_check_with_robot_base(ee_body);
 
@@ -280,6 +298,8 @@ public:
         run_safely(set_cont_velocity);
       }
     }
+    
+    std::cout  << ee_body->GetPosition().x << "," << ee_body->GetPosition().y << std::endl;
 
     push_def.push_end = ee_body->GetPosition();
 
@@ -398,31 +418,30 @@ public:
     {
       if (get_body_color(b) == "red" || get_body_color(b) == "blue")
       {
-        std::cout << "distance is" << get_dist_between_bodies(b, get_body_color(b) == "blue" ? blue_goal_body : red_goal_body) << std::endl;
-        std::cout << get_body_color(b) << std::endl;
-
+        
         //    double diff_x = b_from->GetPosition().x - b_to->GetPosition().x;
         if (b->GetPosition().x > 37.5 || b->GetPosition().x < -37.5 || b->GetPosition().y < 0 ||
             b->GetPosition().y > 35)
         {
+          std::cout << b->GetPosition().x << "," << b->GetPosition().y << std::endl;
+          std::cout << get_body_color(b) << "is off the table..." << std::endl;
           d = -1000;
         }
         else if (get_dist_between_bodies(b, get_body_color(b) == "blue" ? blue_goal_body : red_goal_body) < 10)
         {
-          std::cout << "INSIDE!!!" << std::endl;
-          
+         
           d = 1;
         }
         else
         {
-          d = 1 - (get_dist_between_bodies(b, get_body_color(b) == "blue" ? blue_goal_body : red_goal_body) / 85.0F);
+          d = -get_dist_between_bodies(b, get_body_color(b) == "blue" ? blue_goal_body : red_goal_body);
         }
 
         dist = dist + d;
 
       }
     }
-      std::cout << "reward: " << dist << std::endl;
+      
       return dist;
     }
 
@@ -438,7 +457,7 @@ public:
       
 
       std::vector<int> displaced_bodies = get_displaced_objects();
-      std::cout << "---- # displaced_bodies: " << displaced_bodies.size() << std::endl;
+      
 
       if (displaced_bodies.empty())
       {
@@ -477,7 +496,7 @@ public:
         int min_index = std::distance(heuristics.begin(), smallest);
 
         min_push_def = push_defs[min_index];
-        // std::cout << "Best Push " <<std::endl;
+        // 
         // print_push_def(min_push_def);
         // visualize selected push
 
@@ -520,13 +539,13 @@ public:
         if (get_body_color(cur_body) == "red")
         {
           goal_body = red_goal_body;
-          std::cout << cur_body->IsActive() << std::endl;
+          
         }
 
         else if (get_body_color(cur_body) == "blue")
         {
           goal_body = blue_goal_body;
-          std::cout << cur_body->IsActive() << std::endl;
+          
         }
 
         // get goal region bounding box
@@ -822,8 +841,8 @@ public:
         jd.bodyA = ground;
         jd.bodyB = dynamicBody1;
         jd.collideConnected = true;
-        jd.maxForce = 0.05;   // mass * gravity;
-        jd.maxTorque = 0.05;  // mass * radius * gravity;
+        jd.maxForce = 0.09;   // mass * gravity;
+        jd.maxTorque = 0.09;  // mass * radius * gravity;
 
         auto create_jd = [&]() { m_world->CreateJoint(&jd); };
         run_safely(create_jd);
@@ -854,6 +873,14 @@ public:
       sd.density = 0.0f;
       sd.restitution = 0.4;
 
+      b2EdgeShape shape2;
+      b2FixtureDef sd2;
+      sd2.shape = &shape2;
+      sd2.friction = 0.99f;
+      sd2.density = 0.0f;
+      sd2.restitution = 0.4;
+
+
       double table_x_len = 1.5;
       double table_y_len = 0.8;
       double robot_base_offset = 0.1;
@@ -865,39 +892,53 @@ public:
       b2BodyDef bd;
       bd.position.Set(0.0f, 0.0f);
 
-      auto create_ground = [&]() { ground = m_world->CreateBody(&bd); };
+      b2BodyDef bd2;
+      bd2.position.Set(0.0f, 0.0f);
+
+      auto create_ground = [&]() { ground = m_world->CreateBody(&bd);
+      ground2 = m_world->CreateBody(&bd2); };
+
       run_safely(create_ground);
 
-      // // Left vertical
-      // shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, -robot_base_offset),
-      // pix_coeff * b2Vec2(-table_x_len / 2, table_y_len - robot_base_offset));
+       auto create_ground2f = [&]() {
+        ground2->CreateFixture(&sd);
+      };
 
-      // // shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, -table_y_len / 2),
-      // //         pix_coeff * b2Vec2(-table_x_len / 2, table_y_len / 2));
 
-      // ground->CreateFixture(&sd);
 
-      // // Right vertical
-      // shape.Set(pix_coeff * b2Vec2(table_x_len / 2, -robot_base_offset),
-      //           pix_coeff * b2Vec2(table_x_len / 2, table_y_len - robot_base_offset));
-      // ground->CreateFixture(&sd);
+      // Left vertical
+      shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, -robot_base_offset),
+      pix_coeff * b2Vec2(-table_x_len / 2, table_y_len - robot_base_offset));
 
-      // // Top horizontal
-      // shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, table_y_len - robot_base_offset),
-      //           pix_coeff * b2Vec2(table_x_len / 2, table_y_len - robot_base_offset));
-      // ground->CreateFixture(&sd);
+      // shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, -table_y_len / 2),
+      //         pix_coeff * b2Vec2(-table_x_len / 2, table_y_len / 2));
 
-      // // std::cout<< "TABLE X: " <<pix_coeff*table_x_len/2 << " Y: " << pix_coeff*(table_y_len -
-      // // robot_base_offset)<<std::endl;
+      // ground2->CreateFixture(&sd);
+      run_safely(create_ground2f);
 
-      // // Bottom horizontal
-      // shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, -robot_base_offset),
-      //           pix_coeff * b2Vec2(table_x_len / 2, -robot_base_offset));
-      // ground->CreateFixture(&sd);
+
+      // Right vertical
+      shape.Set(pix_coeff * b2Vec2(table_x_len / 2, -robot_base_offset),
+                pix_coeff * b2Vec2(table_x_len / 2, table_y_len - robot_base_offset));
+      run_safely(create_ground2f);
+
+      // Top horizontal
+      shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, table_y_len - robot_base_offset),
+                pix_coeff * b2Vec2(table_x_len / 2, table_y_len - robot_base_offset));
+      run_safely(create_ground2f);
+
+      // std::cout<< "TABLE X: " <<pix_coeff*table_x_len/2 << " Y: " << pix_coeff*(table_y_len -
+      // robot_base_offset)<<std::endl;
+
+      // Bottom horizontal
+      shape.Set(pix_coeff * b2Vec2(-table_x_len / 2, -robot_base_offset),
+                pix_coeff * b2Vec2(table_x_len / 2, -robot_base_offset));
+      run_safely(create_ground2f);
 
       auto create_groundf = [&]() {
-        ground->CreateFixture(&sd);
+        ground->CreateFixture(&sd2);
         ground->SetActive(true);
+        ground2->SetActive(false);
       };
       run_safely(create_groundf);
 
@@ -940,11 +981,12 @@ public:
 
       auto create_ee = [&]() {
         robot_base_body->CreateFixture(&myFixtureDef);  // add a fixture to the body
+        ee_body->CreateFixture(&ee_fixture);
+
 
       };
       run_safely(create_ee);
 
-      ee_body->CreateFixture(&ee_fixture);
 
       bodyUserData* ee_body_data = new bodyUserData;
       ee_body_data->id = -1;
@@ -1007,7 +1049,7 @@ public:
     }
     ~ApplyForce()
     {
-      std::cout << "ApplyForce Destructor" << std::endl;
+      
     }
     static Test* Create()
     {
