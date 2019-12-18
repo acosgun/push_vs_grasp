@@ -1,1 +1,2 @@
 ---
+sensor_msgs/Image next_state

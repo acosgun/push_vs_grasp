@@ -4,5 +4,5 @@ float64 angle
 float64 dist
 ---
 sensor_msgs/Image next_state
-int64 reward
+float64 reward
 bool done

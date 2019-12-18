@@ -163,7 +163,6 @@ public:
     double dist;
 
     cv::Mat img = push(req.start_x, req.start_y, req.angle, req.dist, dist);
-    std::cout << "reached here" << std::endl;
     res.done = dist == 0;
     res.reward = dist;
 
@@ -177,6 +176,9 @@ public:
     // test_derived->reset(objects, radiuses, colours, r1, r2, goal_radiuses);
     currently_simulate = false;
     random_objects(true);
+    cv::Mat img = test_derived->get_ocv_img_from_gl_img();
+    res.next_state = cv_to_ros(img);
+
     currently_simulate = true;
     return true;
   }
