@@ -2,6 +2,7 @@ import random
 import numpy as np
 from collections import deque
 import torch
+import glob
 
 class BasicBuffer:
 
@@ -11,8 +12,32 @@ class BasicBuffer:
         self.no_reward_buffer = deque(maxlen=max_size / 3)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        self.number = 0
+
+        for i in glob.glob("./samples/*.pt"):
+            file_name = i.split("/")[-1].split(".")[0]
+            print(file_name)
+            
+            self.number = max(self.number, int(file_name.split("_")[0]))
+            reward_change = file_name.split("_")[1] == "c"
+
+            experience = torch.load(i)
+
+            if reward_change:
+                self.buffer.append(experience)
+            else:
+                self.no_reward_buffer.append(experience)
+
+
+
+
+            
+
 
     def push(self, state, action, reward, next_state, done, reward_change):
+
+        self.number += 1
+
 
         unsqueeze = lambda x : torch.unsqueeze(x,0)
 
@@ -26,8 +51,12 @@ class BasicBuffer:
         #experience = (state, action, np.array([reward]), next_state, done)
         if reward_change:
             self.buffer.append(experience)
+            torch.save(experience, "./samples/" + str(self.number) + "_c.pt")
+
         else:
             self.no_reward_buffer.append(experience)
+            torch.save(experience, "./samples/" +  str(self.number) + "_nc.pt")
+
 
     def sample(self, batch_size):
         print("length of buffer is: " + str(len(self)))

@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn 
 import torch.nn.functional as F
 import torch.optim as optim
+import random
+import numpy as np
 
 from models import Critic, Actor
 from common.replay_buffers import BasicBuffer
@@ -44,14 +46,24 @@ class TD3Agent:
         self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=critic_lr)
         self.critic2_optimizer = optim.Adam(self.critic1.parameters(), lr=critic_lr) 
         self.actor_optimizer  = optim.Adam(self.actor.parameters(), lr=actor_lr)
+
+        # self.critic1.load_state_dict(torch.load("./critic1.pt"))
+        # self.critic2.load_state_dict(torch.load("./critic2.pt"))
+        # self.critic1_target.load_state_dict(torch.load("./critic1_target.pt"))
+        # self.critic2_target.load_state_dict(torch.load("./critic2_target.pt"))
+        # self.actor.load_state_dict(torch.load("./actor.pt"))
+        # self.actor_target.load_state_dict(torch.load("./actor_target.pt"))   
         
         self.replay_buffer = BasicBuffer(buffer_maxlen)        
 
     def get_action(self, obs):
-
-        action = self.actor.forward(obs)
-        action = action.squeeze(0).cpu().detach().numpy()
-
+        action = []
+        if random.random() > 0.3:
+            action = self.actor.forward(obs)
+            action = action.squeeze(0).cpu().detach().numpy()
+        else:
+            print("taking random action lol")
+            action = np.array([random.random() for i in range(4)])
         return action
     
     def update(self, batch_size):
@@ -59,9 +71,10 @@ class TD3Agent:
 
         # state_batch = torch.FloatTensor(state_batch).to(self.device)
         # action_batch = torch.FloatTensor(action_batch).to(self.device)
-        # reward_batch = torch.FloatTensor(reward_batch).to(self.device)
+        # reward_   batch = torch.FloatTensor(reward_batch).to(self.device)
         # next_state_batch = torch.FloatTensor(next_state_batch).to(self.device)
         # masks = torch.FloatTensor(masks).to(self.device)
+
 
         action_space_noise = self.generate_action_space_noise(action_batch)
 
@@ -98,6 +111,13 @@ class TD3Agent:
             self.update_targets()
 
         self.update_step += 1
+
+        torch.save(self.critic1.state_dict(), "./critic1.pt")
+        torch.save(self.critic2.state_dict(), "./critic2.pt")
+        torch.save(self.critic1_target.state_dict(), "./critic1_target.pt")
+        torch.save(self.critic2_target.state_dict(), "./critic2_target.pt")
+        torch.save(self.actor.state_dict(), "./actor.pt")
+        torch.save(self.actor_target.state_dict(), "./actor_target.pt")   
 
     def generate_action_space_noise(self, action_batch):
         noise = torch.normal(torch.zeros(action_batch.size()), self.noise_std).clamp(-self.noise_bound, self.noise_bound).to(self.device)

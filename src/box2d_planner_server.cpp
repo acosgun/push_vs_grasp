@@ -42,6 +42,7 @@ private:
   {
     return ((float)rand() / RAND_MAX) * (max - min) + min;
   }
+  
 
 public:
   bool currently_simulate = true;
@@ -160,7 +161,7 @@ public:
 
     cv::Mat img = test_derived->push_action(req.start_x, req.start_y, req.end_x, req.end_y, heuristic);
 
-    res.done = heuristic == 0;
+    res.done = heuristic <= -9000 || heuristic == 0;
     res.reward = heuristic;
 
     res.next_state = cv_to_ros(img);
@@ -206,7 +207,7 @@ int main(int argc, char** argv)
     }
     try
     {
-      draw_stuff(true, true);
+      draw_stuff(true, false);
     }
     catch (...)
     {

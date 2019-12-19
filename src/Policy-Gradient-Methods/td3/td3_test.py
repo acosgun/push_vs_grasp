@@ -14,14 +14,18 @@ noise_std = 0.2
 bound = 0.5
 delay_step = 2
 buffer_maxlen = 500
-critic_lr = 1e-3
-actor_lr = 1e-3
+critic_lr = 1e-5
+actor_lr = 1e-5
 
-max_episodes = 100
+max_episodes = 1000
 max_steps = 10
-batch_size = 32
-
+batch_size = 50
 agent = TD3Agent(env, gamma, tau, buffer_maxlen, delay_step, noise_std, bound, critic_lr, actor_lr)
-# def mini_batch_train(env, agent, max_episodes, max_steps, batch_size):
 
-episode_rewards = mini_batch_train(env, agent, max_episodes, max_steps, batch_size)
+train = mini_batch_train()
+try:
+    # def mini_batch_train(env, agent, max_episodes, max_steps, batch_size):
+    train.start(env, agent, max_episodes, max_steps, batch_size)
+except KeyboardInterrupt:
+    print(train.episode_rewards)
+

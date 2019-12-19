@@ -58,10 +58,8 @@ class Actor(nn.Module):
 
     def forward(self, obs): 
         
-        
         x = F.leaky_relu(self.conv1(obs))
         x = self.flatten(x)
         x = F.leaky_relu(self.linear2(x))
         x = F.sigmoid(self.linear3(x))
-
         return x
