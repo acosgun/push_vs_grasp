@@ -14,6 +14,11 @@ class BasicBuffer:
 
         self.number = 0
 
+        load_previous = False
+
+        if not load_previous:
+            return
+
         for i in glob.glob("./samples/*.pt"):
             file_name = i.split("/")[-1].split(".")[0]
             print(file_name)

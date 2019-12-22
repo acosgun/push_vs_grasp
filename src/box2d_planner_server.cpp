@@ -207,7 +207,7 @@ int main(int argc, char** argv)
     }
     try
     {
-      draw_stuff(true, false);
+      draw_stuff(true, true);
     }
     catch (...)
     {

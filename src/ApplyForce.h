@@ -218,7 +218,7 @@ public:
     double goal_threshold = 0.02;
     double ee_multiplier = 1.25;
 
-    double magnitude = 0.1; //* (dist > 0 ? +1 : -1);
+    double magnitude = 0.5; //* (dist > 0 ? +1 : -1);
 
     float angle = calc_angle2(start_x, start_y, end_x, end_y);
     float dist = get_dist_between_point(start_x, start_y, end_x, end_y);
@@ -460,7 +460,7 @@ public:
 
         b2FixtureDef myFixtureDef;
         myFixtureDef.friction = 0.99f;
-        myFixtureDef.density = 1.0f;
+        myFixtureDef.density = 9.0f;
         myFixtureDef.shape = &circleShape;  // this is a pointer to the shape above
 
         auto create_fdb1 = [&]() {
@@ -475,8 +475,8 @@ public:
         jd.bodyA = ground;
         jd.bodyB = dynamicBody1;
         jd.collideConnected = true;
-        jd.maxForce = 0.09;   // mass * gravity;
-        jd.maxTorque = 0.09;  // mass * radius * gravity;
+        jd.maxForce = 7;   // mass * gravity;
+        jd.maxTorque = 7;  // mass * radius * grvity;
 
         auto create_jd = [&]() { m_world->CreateJoint(&jd); };
         run_safely(create_jd);
