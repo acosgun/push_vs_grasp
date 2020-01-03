@@ -3,7 +3,65 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.autograd as autograd
 import numpy as np
+import sys
+# sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import cv2
+from torch import FloatTensor
+from torch.autograd import Variable
+
+
+
+class InvariantModel(nn.Module):
+    def __init__(self, phi, rho):
+        super(InvariantModel, self).__init__()
+        self.phi = phi
+        self.rho = rho
+
+    def forward(self, x, a = None):
+        # compute the representation for each data point
+        x = self.phi.forward(x)
+     
+        x = torch.sum(x, dim=0, keepdim=True)
+        print(x)
+
+        if a != None:
+            x = torch.concat([x,a], 1)
+     
+        out = self.rho.forward(x)
+        print("output of rho")
+        print(out)
+        print(self.rho.output_size)
+        return out
+
+class TextSumer(nn.Module):
+
+    def __init__(self):
+        super(TextSumer, self).__init__()
+
+        self.embedding = nn.Embedding(500, 100)
+        self.linear = nn.Linear(100, 30)
+        self.tanh = nn.Tanh()
+
+    def forward(self, x):
+        x = self.embedding(x)
+        x = self.linear(x)
+        x = self.tanh(x)
+        return x
+
+class SmallRho(nn.Module):
+    def __init__(self, input_size, output_size = 1):
+        super(SmallRho, self).__init__()
+        self.input_size = input_size
+        self.output_size = output_size
+
+        self.fc1 = nn.Linear(self.input_size, 10)
+        self.fc2 = nn.Linear(10, self.output_size)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = torch.sigmoid(self.fc2(x)).squeeze(dim=0).cpu().detach().numpy()
+       # x = self.fc2(x)
+        return x
 
 
 class Critic(nn.Module):
@@ -14,26 +72,15 @@ class Critic(nn.Module):
         self.obs_dim = obs_dims
         self.action_dim = action_dim
 
+        self.the_phi = TextSumer()
+        self.the_rho = SmallRho(input_size=30, output_size=1)
 
-        self.conv1 = nn.Conv2d(3, 1, 5)
-        self.flatten = Flatten()
-
-        self.linear1 = nn.Linear(5376, 1024)
-        self.linear2 = nn.Linear(1024 + self.action_dim, 512)
-        self.linear3 = nn.Linear(512, 300)
-        self.linear4 = nn.Linear(300, 1)
+        self.model = InvariantModel(phi=self.the_phi, rho=self.the_rho)
 
     def forward(self, x, a):
-      
-        x = F.leaky_relu(self.conv1(x))
-        x = self.flatten(x)
-        x = F.leaky_relu(self.linear1(x))
-        xa_cat = torch.cat([x,a], 1)
-        xa = F.leaky_relu(self.linear2(xa_cat))
-        xa = F.leaky_relu(self.linear3(xa))
-        qval = F.sigmoid(self.linear4(xa))
 
-        return qval
+        return self.model.forward(x,a)
+   
 
 class Flatten(nn.Module):
     def __init__(self):
@@ -50,16 +97,11 @@ class Actor(nn.Module):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
 
-        self.conv1 = nn.Conv2d(3, 1, 10)
-        self.flatten = Flatten()
-        self.linear2 = nn.Linear(4641, 128)
+        self.the_phi = TextSumer()
+        self.the_rho = SmallRho(input_size=30, output_size=self.action_dim)
 
-        self.linear3 = nn.Linear(128, self.action_dim)
+        self.model = InvariantModel(phi=self.the_phi, rho=self.the_rho)
 
     def forward(self, obs): 
         
-        x = F.leaky_relu(self.conv1(obs))
-        x = self.flatten(x)
-        x = F.leaky_relu(self.linear2(x))
-        x = F.sigmoid(self.linear3(x))
-        return x
+        return self.model.forward(obs)

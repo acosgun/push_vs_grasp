@@ -34,17 +34,6 @@ class CustomEnv(gym.Env):
 
         self.restart_simulator()
 
-        # rospy.wait_for_service('/reset_action')
-        # rospy.wait_for_service('/push_action')
-
-        # self.reset_service = rospy.ServiceProxy('/reset_action', reset)
-
-        # self.push_service = rospy.ServiceProxy('/push_action', push_action)
-
-        # self.step(np.array([10,10,20,10]))
-
-
-
     def step(self, action):
         #input is a numpy array containing the four parameters for the action
         start_x = 75 * (action[0] - 0.5)
@@ -58,13 +47,20 @@ class CustomEnv(gym.Env):
 
             img = response.next_state
 
+            l = []
+            for i in response.objects:
+                l.append(i.x)
+                l.append(i.y)
+                l.append(int(i.is_red))    
+            l = torch.Tensor(l).long()    
+
 
             cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
             cv2.imwrite("/home/rhys/pic.png", cv_image)
             image = np.expand_dims(cv_image, axis=0)
             image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
 
-            return [image, response.reward, response.done, -1]
+            return [l, response.reward, response.done, -1]
 
         except:
             self.restart_simulator()
@@ -76,11 +72,22 @@ class CustomEnv(gym.Env):
         try:
         
             response = self.reset_service()
-            img = response.next_state
-            cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
-            image = np.expand_dims(cv_image, axis=0)
-            image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
-            return image
+            # img = response.next_state
+            # cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
+            # image = np.expand_dims(cv_image, axis=0)
+            # image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
+            # return image # img = response.next_state
+            # cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
+            # image = np.expand_dims(cv_image, axis=0)
+            # image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
+            # return image
+            l = []
+            for i in response.objects:
+                l.append(i.x)
+                l.append(i.y)
+                l.append(int(i.is_red))    
+            l = torch.Tensor(l).long()  
+            return l
         except:
             self.restart_simulator()
             return self.reset()

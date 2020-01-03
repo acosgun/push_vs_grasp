@@ -11,6 +11,7 @@
 // ROS
 #include <ros/ros.h>
 #include <geometry_msgs/PointStamped.h>
+#include <push_vs_grasp/object.h>
 
 #include <opencv2/opencv.hpp>
 
@@ -196,9 +197,27 @@ public:
     }
     return -1;
   }  
+  std::vector<push_vs_grasp::object> get_all_objects() {
+      std::vector<push_vs_grasp::object> result;
+        for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
+          if (get_body_color(b) == "red" || get_body_color(b) == "blue") {
+              b2Vec2 pos = b->GetPosition();
+              push_vs_grasp::object curr;
+              double x_out, y_out;
+              box2d_to_img(pos.x, pos.y, x_out, y_out);
+
+              curr.x = x_out;
+              curr.y = y_out;
+              curr.is_red = get_body_color(b) == "red";
+              result.push_back(curr);
+          }
+
+        }
+        return result;
+    }
 
 
-  cv::Mat push_action(float start_x, float start_y, float end_x, float end_y, double& out_dist)
+  cv::Mat push_action(float start_x, float start_y, float end_x, float end_y, double& out_dist, std::vector<push_vs_grasp::object> &objects)
   {
     b2Vec2 position = b2Vec2(start_x, start_y);
     
@@ -295,9 +314,13 @@ public:
 
     std::cout << "difference" << out_dist << std::endl;
 
+    objects = get_all_objects();
+
+
 
     return data;
   }
+
 
   cv::Mat get_ocv_img_from_gl_img()
   {
@@ -412,6 +435,8 @@ public:
       }
       return result;
     }
+
+    
 
    
     std::string get_body_color(b2Body * b)

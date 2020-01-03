@@ -58,12 +58,15 @@ class TD3Agent:
 
     def get_action(self, obs):
         action = []
+        print("obs")
+        print(obs)
         if random.random() > 0.3:
             action = self.actor.forward(obs)
-            action = action.squeeze(0).cpu().detach().numpy()
+            #action = action.squeeze(0).cpu().detach().numpy()
         else:
             print("taking random action lol")
-            action = np.array([random.random() for i in range(4)])
+            #action = np.array([random.random() for i in range(4)])
+            action = torch.Tensor([random.random() for i in range(4)])
         return action
     
     def update(self, batch_size):
@@ -74,6 +77,8 @@ class TD3Agent:
         # reward_   batch = torch.FloatTensor(reward_batch).to(self.device)
         # next_state_batch = torch.FloatTensor(next_state_batch).to(self.device)
         # masks = torch.FloatTensor(masks).to(self.device)
+
+        print(action_batch)
 
 
         action_space_noise = self.generate_action_space_noise(action_batch)

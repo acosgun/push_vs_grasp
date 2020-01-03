@@ -17,7 +17,7 @@ buffer_maxlen = 500
 critic_lr = 1e-5
 actor_lr = 1e-5
 
-max_episodes = 1000
+max_episodes = 100000
 max_steps = 200
 batch_size = 50
 agent = TD3Agent(env, gamma, tau, buffer_maxlen, delay_step, noise_std, bound, critic_lr, actor_lr)

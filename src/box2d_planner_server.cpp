@@ -9,6 +9,8 @@
 #include <geometry_msgs/PointStamped.h>
 #include <push_vs_grasp/push_action.h>
 #include <push_vs_grasp/reset.h>
+
+#include <push_vs_grasp/object.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 #include <cv_bridge/cv_bridge.h>
@@ -158,11 +160,13 @@ public:
   bool do_action(push_vs_grasp::push_action::Request& req, push_vs_grasp::push_action::Response& res)
   {
     double heuristic;
+    std::vector<push_vs_grasp::object> objects;
 
-    cv::Mat img = test_derived->push_action(req.start_x, req.start_y, req.end_x, req.end_y, heuristic);
+    cv::Mat img = test_derived->push_action(req.start_x, req.start_y, req.end_x, req.end_y, heuristic, objects);
 
     res.done = heuristic <= -9000 || heuristic == 0;
     res.reward = heuristic;
+    res.objects = objects;
 
     res.next_state = cv_to_ros(img);
 
@@ -176,6 +180,7 @@ public:
     random_objects(true);
     cv::Mat img = test_derived->get_ocv_img_from_gl_img();
     res.next_state = cv_to_ros(img);
+    res.objects = test_derived->get_all_objects();
 
     currently_simulate = true;
     return true;

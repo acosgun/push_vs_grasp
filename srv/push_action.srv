@@ -3,6 +3,7 @@ float64 start_y
 float64 end_x
 float64 end_y
 ---
+object[] objects
 sensor_msgs/Image next_state
 float64 reward
 bool done

@@ -14,7 +14,7 @@ class BasicBuffer:
 
         self.number = 0
 
-        load_previous = False
+        load_previous = True
 
         if not load_previous:
             return

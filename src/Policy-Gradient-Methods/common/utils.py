@@ -8,7 +8,7 @@ class mini_batch_train:
         self.episode_rewards = []
 
         for episode in range(max_episodes):
-            state = env.reset()
+            state = env.reset().to('cuda').long()
             print("EPISODE..." + str(episode))
             episode_reward = 0
 
@@ -16,6 +16,7 @@ class mini_batch_train:
                 action = agent.get_action(state)
                
                 next_state, reward, done, _ = env.step(action)
+                print(next_state)
                 agent.replay_buffer.push(state, action, reward, next_state, done, reward > 0.01)
                 episode_reward += reward
 
@@ -26,8 +27,9 @@ class mini_batch_train:
                     self.episode_rewards.append(episode_reward)
                     print("Episode " + str(episode) + ": " + str(episode_reward))
                     break
-
-                state = next_state
+                
+                state = next_state.to('cuda').long()
+                
 
         #return self.episode_rewards
 
