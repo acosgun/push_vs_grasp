@@ -52,15 +52,16 @@ class CustomEnv(gym.Env):
                 l.append(i.x)
                 l.append(i.y)
                 l.append(int(i.is_red))    
-            l = torch.Tensor(l).long()    
+            l = torch.Tensor(l).long().cuda()    
 
 
             cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
             cv2.imwrite("/home/rhys/pic.png", cv_image)
-            image = np.expand_dims(cv_image, axis=0)
-            image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
+            # image = np.expand_dims(cv_image, axis=0)
+            # image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
 
             return [l, response.reward, response.done, -1]
+
 
         except:
             self.restart_simulator()
@@ -86,7 +87,7 @@ class CustomEnv(gym.Env):
                 l.append(i.x)
                 l.append(i.y)
                 l.append(int(i.is_red))    
-            l = torch.Tensor(l).long()  
+            l = torch.Tensor(l).long().cuda()
             return l
         except:
             self.restart_simulator()

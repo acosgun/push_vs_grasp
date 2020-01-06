@@ -16,7 +16,7 @@ class mini_batch_train:
                 action = agent.get_action(state)
                
                 next_state, reward, done, _ = env.step(action)
-                print(next_state)
+                # print(next_state)
                 agent.replay_buffer.push(state, action, reward, next_state, done, reward > 0.01)
                 episode_reward += reward
 

@@ -66,17 +66,11 @@ class TD3Agent:
         else:
             print("taking random action lol")
             #action = np.array([random.random() for i in range(4)])
-            action = torch.Tensor([random.random() for i in range(4)])
+            action = torch.LongTensor([random.random() for i in range(4)])
         return action
     
     def update(self, batch_size):
         state_batch, action_batch, reward_batch, next_state_batch, masks = self.replay_buffer.sample(batch_size)
-
-        # state_batch = torch.FloatTensor(state_batch).to(self.device)
-        # action_batch = torch.FloatTensor(action_batch).to(self.device)
-        # reward_   batch = torch.FloatTensor(reward_batch).to(self.device)
-        # next_state_batch = torch.FloatTensor(next_state_batch).to(self.device)
-        # masks = torch.FloatTensor(masks).to(self.device)
 
         print(action_batch)
 
@@ -84,7 +78,7 @@ class TD3Agent:
         action_space_noise = self.generate_action_space_noise(action_batch)
 
         #print(action_space_noise)
-        next_actions = self.actor.forward(state_batch) + action_space_noise
+        next_actions = self.actor.forward(state_batch) #+ action_space_noise
         next_Q1 = self.critic1_target.forward(next_state_batch, next_actions)
         next_Q2 = self.critic2_target.forward(next_state_batch, next_actions)
         expected_Q = reward_batch + self.gamma * torch.min(next_Q1, next_Q2)

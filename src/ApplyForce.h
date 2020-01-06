@@ -500,8 +500,8 @@ public:
         jd.bodyA = ground;
         jd.bodyB = dynamicBody1;
         jd.collideConnected = true;
-        jd.maxForce = 7;   // mass * gravity;
-        jd.maxTorque = 7;  // mass * radius * grvity;
+        jd.maxForce = 6;   // mass * gravity;
+        jd.maxTorque = 6;  // mass * radius * grvity;
 
         auto create_jd = [&]() { m_world->CreateJoint(&jd); };
         run_safely(create_jd);

@@ -22,15 +22,15 @@ class InvariantModel(nn.Module):
         x = self.phi.forward(x)
      
         x = torch.sum(x, dim=0, keepdim=True)
-        print(x)
+        # print(x)
 
-        if a != None:
-            x = torch.concat([x,a], 1)
+        if not (a is None):
+            x = torch.cat((x,a), dim=1)
      
         out = self.rho.forward(x)
-        print("output of rho")
-        print(out)
-        print(self.rho.output_size)
+        # print("output of rho")
+        # print(out)
+        # print(self.rho.output_size)
         return out
 
 class TextSumer(nn.Module):
