@@ -23,18 +23,21 @@ class CustomEnv(gym.Env):
 #   """Custom Environment that follows gym interface"""
     #metadata = {'render.modes': ['human']}
 
+
+
     def __init__(self):
         super(CustomEnv, self).__init__() 
    
         self.bridge = CvBridge()
         self.action_space = spaces.Box(low=np.array([-37.5, 5, 0, 30]), high=np.array([37.5, 35, 2*math.pi, 50]), dtype=np.float16)       
 
+        self.current_object_state = None    
         #Image as Input using
         self.observation_space = spaces.Box(low=0, high=255, shape=(HEIGHT, WIDTH, N_CHANNELS), dtype=np.uint8)
 
         self.restart_simulator()
 
-    def step(self, action):
+    def step(self, action, retain=False):
         #input is a numpy array containing the four parameters for the action
         start_x = 75 * (action[0] - 0.5)
         start_y = action[1] * 30 + 5
@@ -43,7 +46,8 @@ class CustomEnv(gym.Env):
 
         print(start_x, start_y, end_x, end_y)
         try:
-            response = self.push_service(start_x, start_y, end_x, end_y)
+            print(self.current_object_state)
+            response = self.push_service(start_x, start_y, end_x, end_y, self.current_object_state)
 
             img = response.next_state
 
@@ -52,13 +56,16 @@ class CustomEnv(gym.Env):
                 l.append(i.x)
                 l.append(i.y)
                 l.append(int(i.is_red))    
-            l = torch.Tensor(l).long().cuda()    
+            l = torch.Tensor(l).long().cuda() 
+            
+            if retain:
+                self.current_object_state = response.objects   
 
 
             cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
             cv2.imwrite("/home/rhys/pic.png", cv_image)
-            # image = np.expand_dims(cv_image, axis=0)
-            # image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
+        # image = np.expand_dims(cv_image, axis=0)
+        # image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
 
             return [l, response.reward, response.done, -1]
 
@@ -88,10 +95,13 @@ class CustomEnv(gym.Env):
                 l.append(i.y)
                 l.append(int(i.is_red))    
             l = torch.Tensor(l).long().cuda()
+            self.current_object_state = response.objects   
             return l
         except:
-            self.restart_simulator()
-            return self.reset()
+
+
+             self.restart_simulator()
+             return self.reset()
 
 
         

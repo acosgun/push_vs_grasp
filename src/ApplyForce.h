@@ -79,10 +79,10 @@ public:
 
    void reset(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses,
              std::vector<std::string> colors, geometry_msgs::PointStamped red_goal,
-             geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses)
+             geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses, bool transform)
   {
     destroy_all_objects();
-    setup_objects(centroids, radiuses, colors, red_goal, blue_goal, goal_radiuses);
+    setup_objects(centroids, radiuses, colors, red_goal, blue_goal, goal_radiuses, transform);
     
 
 
@@ -203,11 +203,11 @@ public:
           if (get_body_color(b) == "red" || get_body_color(b) == "blue") {
               b2Vec2 pos = b->GetPosition();
               push_vs_grasp::object curr;
-              double x_out, y_out;
-              box2d_to_img(pos.x, pos.y, x_out, y_out);
+              //double x_out, y_out;
+              //box2d_to_img(pos.x, pos.y, x_out, y_out);
 
-              curr.x = x_out;
-              curr.y = y_out;
+              curr.x = pos.x; //x_out;
+              curr.y = pos.y; //y_out;
               curr.is_red = get_body_color(b) == "red";
               result.push_back(curr);
           }
@@ -452,18 +452,18 @@ public:
 
    void setup_objects(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses,
                        std::vector<std::string> colors, geometry_msgs::PointStamped red_goal,
-                       geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses)
+                       geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses, bool transform)
     {
       this->centroids = centroids;
       this->colors = colors;
       this->goal_radiuses = goal_radiuses;
       setup_table(red_goal, blue_goal);
-      draw_table(centroids, radiuses, colors, red_goal, blue_goal);
-    }
+      draw_table(centroids, radiuses, colors, red_goal, blue_goal, transform);
+    } 
 
     void draw_table(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses,
                     std::vector<std::string> colors, geometry_msgs::PointStamped red_goal,
-                    geometry_msgs::PointStamped blue_goal)
+                    geometry_msgs::PointStamped blue_goal, bool transform)
     {
       for (int i = 0; i < centroids.size(); i++)
       {
@@ -473,7 +473,7 @@ public:
 
         double x_out, y_out;
         robot_to_box2d_frame(centroids[i].point.x, centroids[i].point.y, x_out, y_out);
-        myBodyDef.position.Set(x_out, y_out);
+        myBodyDef.position.Set(transform ? x_out : centroids[i].point.x, transform ? y_out : centroids[i].point.y);
         b2Body* dynamicBody1;
 
         auto create_db1 = [&]() { dynamicBody1 = m_world->CreateBody(&myBodyDef); };

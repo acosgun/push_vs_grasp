@@ -119,11 +119,11 @@ public:
 
     if (reset)
     {
-      test_derived->reset(objects, radiuses, colours, r1, r2, goal_radiuses);  // = static_cast<ApplyForce*>(test);
+      test_derived->reset(objects, radiuses, colours, r1, r2, goal_radiuses, true);  // = static_cast<ApplyForce*>(test);
     }
     else
     {
-      test_derived->setup_objects(objects, radiuses, colours, r1, r2, goal_radiuses);
+      test_derived->setup_objects(objects, radiuses, colours, r1, r2, goal_radiuses, true);
     }
   }
   
@@ -161,6 +161,37 @@ public:
   {
     double heuristic;
     std::vector<push_vs_grasp::object> objects;
+
+    geometry_msgs::PointStamped r1;
+    r1.point.x = -0.7 + 0.2;
+    r1.point.y = -(0.75 - 0.2);
+
+    geometry_msgs::PointStamped r2;
+    r2.point.x = -0.1;
+    r2.point.y = (0.75 - 0.2);
+
+    std::vector<double> goal_radiuses;
+    goal_radiuses.push_back(0.2F);
+    goal_radiuses.push_back(0.2F);
+
+    std::vector<double> radiuses;
+    std::vector<std::string> colours;
+   std::vector<geometry_msgs::PointStamped> current_objects;
+
+
+    for (int i = 0; i < req.objects.size(); i++) {
+      radiuses.push_back(0.08F);
+      colours.push_back(req.objects[i].is_red ? "red" : "blue");
+      geometry_msgs::PointStamped obj;
+      obj.point.x = req.objects[i].x;
+      obj.point.y = req.objects[i].y;
+      current_objects.push_back(obj);
+
+    }
+
+    test_derived->reset(current_objects, radiuses, colours, r1, r2, goal_radiuses, false);  // = static_cast<ApplyForce*>(test);
+      // test_derived->reset(objects, radiuses, colours, r1, r2, goal_radiuses);  // = static_cast<ApplyForce*>(test);
+
 
     cv::Mat img = test_derived->push_action(req.start_x, req.start_y, req.end_x, req.end_y, heuristic, objects);
 
