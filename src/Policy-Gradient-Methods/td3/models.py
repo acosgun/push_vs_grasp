@@ -43,9 +43,12 @@ class TextSumer(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, x):
+	# print(x)
         x = self.embedding(x)
+	# print(x)
         x = self.linear(x)
-        x = self.tanh(x)
+	# print(x)        
+	x = self.tanh(x)
         return x
 
 class SmallRho(nn.Module):

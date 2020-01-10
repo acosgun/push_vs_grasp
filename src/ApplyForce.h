@@ -219,46 +219,45 @@ public:
 
   cv::Mat push_action(float start_x, float start_y, float end_x, float end_y, double& out_dist, std::vector<push_vs_grasp::object> &objects)
   {
+    std::cout << "1" << std::endl;
     b2Vec2 position = b2Vec2(start_x, start_y);
-    
+        std::cout << "2" << std::endl;
     red_goal_body = get_objects(red_goal_str)[0];
     blue_goal_body = get_objects(blue_goal_str)[0];
-
+    std::cout << "3" << std::endl;
    
   
 
     float prev_reward = calc_heuristic();
 
-    std::cout << "prev_reward" << prev_reward << std::endl;
-
-    std::cout  << position.x << "," << position.y << std::endl;
-
     PushDef push_def;
     double goal_threshold = 0.02;
     double ee_multiplier = 1.25;
 
+    std::cout << "4" << std::endl;
     double magnitude = 0.5; //* (dist > 0 ? +1 : -1);
 
     float angle = calc_angle2(start_x, start_y, end_x, end_y);
     float dist = get_dist_between_point(start_x, start_y, end_x, end_y);
-
+    std::cout << "5" << std::endl;
     b2Vec2 linear_velocity = calc_linear_velocity2(start_x, start_y, end_x, end_y, dist, magnitude);
 
     set_sensor_status(ee_body, false);
     set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
-
-
+    std::cout << "6" << std::endl;
+          ee_body->SetTransform(position, angle);
 
     auto set_pos = [&]() {
-      ee_body->SetTransform(position, angle);
+          std::cout << "7" << std::endl;
     };
     run_safely(set_pos);
 
-
       if (coll_check(ee_body)) {
-  
+            std::cout << "8" << std::endl;
         cv::Mat data = get_ocv_img_from_gl_img();
         out_dist = calc_heuristic() - prev_reward;
+        objects = get_all_objects();
+
 
       return data;
         }
@@ -266,27 +265,34 @@ public:
       auto set_velo = [&]() {
         ee_body->SetActive(true);
         ee_body->SetLinearVelocity(linear_velocity);
+    std::cout << "9" << std::endl;
       };
 
       run_safely(set_velo);
 
 
-
+    std::cout << "10" << std::endl;
 
     push_def.push_start = ee_body->GetPosition();
 
     while (true)
     {
+          std::cout << "11" << std::endl;
       double d = dist - get_dist_moved(start_x, start_y, ee_body);
 
+      // std::cout << ee_body->GetLinearVelocity().Length();
+    std::cout << d << "," << dist << std::endl;
 
+    std::cout << "12" << std::endl;
       bool collision = coll_check_with_robot_base(ee_body);
+    // std::cout << d << "," <<  goal_threshold << "," << pix_coeff << std::endl;
 
       if (d < goal_threshold * pix_coeff || collision || ee_body->GetLinearVelocity().Length() == 0 ) //at goal or stuck
       {
         auto set_finished = [&]() {
           ee_body->SetLinearVelocity(b2Vec2(0, 0));
           set_sensor_status(ee_body, true);
+              std::cout << "13" << std::endl;
         };
         run_safely(set_finished);
 
@@ -296,27 +302,28 @@ public:
       {
         auto set_cont_velocity = [&]() { ee_body->SetLinearVelocity(linear_velocity); };
         run_safely(set_cont_velocity);
+            std::cout << "14" << std::endl;
       }
     }
-    
-    std::cout  << ee_body->GetPosition().x << "," << ee_body->GetPosition().y << std::endl;
 
+    std::cout  << ee_body->GetPosition().x << "," << ee_body->GetPosition().y << std::endl;
+    std::cout << "15" << std::endl;
     push_def.push_end = ee_body->GetPosition();
 
     auto set_inactive = [&]() { ee_body->SetActive(false); };
     run_safely(set_inactive);
-
+    std::cout << "16" << std::endl;
     cv::Mat data = get_ocv_img_from_gl_img();
 
     out_dist = calc_heuristic() - prev_reward;
-
+    std::cout << "17" << std::endl;
     std::cout << "current reward" << calc_heuristic() << std::endl;
 
     std::cout << "difference" << out_dist << std::endl;
 
     objects = get_all_objects();
 
-
+    std::cout << "18" << std::endl;
 
     return data;
   }

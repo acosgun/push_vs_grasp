@@ -2,7 +2,7 @@ from td3 import TD3Agent
 from common.utils import mini_batch_train
 import gym,sys
 
-sys.path.append('/home/rhys/gym_test/ws/src/push_vs_grasp/src')
+sys.path.append('/home/rhys/catkin_ws/src/push_vs_grasp/src')
 import openai_wrapper
 
 # env = gym.make("Pendulum-v0")

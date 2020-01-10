@@ -247,7 +247,7 @@ int main(int argc, char** argv)
     }
     catch (...)
     {
-      std::cout << "failed to draw..." << std::endl;
+      // std::cout << "failed to draw..." << std::endl;
     }
   }
 

@@ -58,15 +58,19 @@ class TD3Agent:
 
     def get_action(self, obs):
         action = []
-        print("obs")
-        print(obs)
+        # print("obs")
+        # print(obs)
         if random.random() > 0.3:
             action = self.actor.forward(obs)
+  
             #action = action.squeeze(0).cpu().detach().numpy()
         else:
             print("taking random action lol")
             #action = np.array([random.random() for i in range(4)])
-            action = torch.LongTensor([random.random() for i in range(4)])
+            action = np.array([random.random() for i in range(4)])
+
+            # action = torch.FloatTensor(array)
+            # print(array)
         return action
     
     def update(self, batch_size):

@@ -39,74 +39,77 @@ class CustomEnv(gym.Env):
 
     def step(self, action, retain=False):
         #input is a numpy array containing the four parameters for the action
+        print(action)
         start_x = 75 * (action[0] - 0.5)
         start_y = action[1] * 30 + 5
         end_x = 75 * (action[2] - 0.5)
         end_y = action[3] * 30 + 5
 
+        
+
         print(start_x, start_y, end_x, end_y)
+        raw_input()
         try:
-            print(self.current_object_state)
+            
             response = self.push_service(start_x, start_y, end_x, end_y, self.current_object_state)
 
-            img = response.next_state
+            #img = response.next_state
 
             l = []
-            for i in response.objects:
-                l.append(i.x)
-                l.append(i.y)
+            #print(response.objects)
+            for i in self.current_object_state:
+                x,y = self.box_2d_to_img(i.x, i.y)
+                l.append(x)
+                l.append(y)
                 l.append(int(i.is_red))    
             l = torch.Tensor(l).long().cuda() 
-            
-            if retain:
-                self.current_object_state = response.objects   
+
+            # if retain:
+            #     self.current_object_state = response.objects   
 
 
-            cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
-            cv2.imwrite("/home/rhys/pic.png", cv_image)
+            # cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
+            # cv2.imwrite("/home/rhys/pic.png", cv_image)
         # image = np.expand_dims(cv_image, axis=0)
         # image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
 
-            return [l, response.reward, response.done, -1]
+            # return [l, response.reward, response.done, -1]
+            return [l, 0,0,-1]
 
-
-        except:
+        except Exception as e:
+            print(e)
             self.restart_simulator()
             return self.step(action)
             
 
+    def box_2d_to_img(self, x_in, y_in):
+        return (x_in + 37.5) + 10, -(y_in + 10) + 50
        
     def reset(self):
         try:
         
             response = self.reset_service()
-            # img = response.next_state
-            # cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
-            # image = np.expand_dims(cv_image, axis=0)
-            # image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
-            # return image # img = response.next_state
-            # cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
-            # image = np.expand_dims(cv_image, axis=0)
-            # image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
-            # return image
+
             l = []
             for i in response.objects:
-                l.append(i.x)
-                l.append(i.y)
+                x,y = self.box_2d_to_img(i.x, i.y)
+                l.append(x)
+                l.append(y)
                 l.append(int(i.is_red))    
+
             l = torch.Tensor(l).long().cuda()
             self.current_object_state = response.objects   
             return l
-        except:
+        except Exception as e:
+            print(e)
 
-
-             self.restart_simulator()
-             return self.reset()
+            self.restart_simulator()
+            return self.reset()
 
 
         
     def restart_simulator(self):
-        subprocess.Popen(["/home/rhys/gym_test/ws/src/push_vs_grasp/src/simulator.sh"], shell=True)
+        subprocess.Popen(["/home/rhys/catkin_ws/src/push_vs_grasp/src/simulator.sh"], shell=True)
         
         rospy.wait_for_service('/reset_action')
         rospy.wait_for_service('/push_action')
