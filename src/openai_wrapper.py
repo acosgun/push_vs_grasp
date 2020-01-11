@@ -100,7 +100,7 @@ class CustomEnv(gym.Env):
 
         
     def restart_simulator(self):
-        subprocess.Popen(["/home/rhys/catkin_ws/src/push_vs_grasp/src/simulator.sh"], shell=True)
+        subprocess.Popen(["/home/rhys/gym_test/ws/src/push_vs_grasp/src/simulator.sh"], shell=True)
         
         rospy.wait_for_service('/reset_action')
         rospy.wait_for_service('/push_action')

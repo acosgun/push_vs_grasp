@@ -46,9 +46,9 @@ class BasicBuffer:
         
         unsqueeze = lambda x : torch.unsqueeze(x,0)
     
-        action = unsqueeze(torch.LongTensor(action).to(self.device))
+        action = unsqueeze(torch.FloatTensor(action).to(self.device))
 
-        reward = unsqueeze(torch.LongTensor(np.array([reward])).to(self.device))
+        reward = unsqueeze(torch.FloatTensor(np.array([reward])).to(self.device))
         done = unsqueeze(torch.LongTensor([done]).to(self.device))
 
         experience = (state, action, reward, next_state, done)
@@ -66,8 +66,8 @@ class BasicBuffer:
     def sample(self, batch_size):
         print("length of buffer is: " + str(len(self)))
         state_batch = torch.LongTensor([]).to(self.device)
-        action_batch = torch.LongTensor([]).to(self.device)
-        reward_batch = torch.LongTensor([]).to(self.device)
+        action_batch = torch.FloatTensor([]).to(self.device)
+        reward_batch = torch.FloatTensor([]).to(self.device)
         next_state_batch = torch.LongTensor([]).to(self.device)
         
         done_batch = torch.Tensor([]).to(self.device)
@@ -80,7 +80,7 @@ class BasicBuffer:
             state_batch = torch.cat((state_batch, torch.unsqueeze(state,dim=0)),0)
             action_batch = torch.cat((action_batch, action),0)
             reward_batch = torch.cat((reward_batch, reward),0)
-            next_state_batch = torch.cat((next_state_batch, next_state),0)
+            next_state_batch = torch.cat((next_state_batch, torch.unsqueeze(next_state,dim=0)),0)
             done_batch = torch.cat((done_batch, done.float()),0)
         print(batch)
         print(len(self.buffer))
@@ -88,7 +88,7 @@ class BasicBuffer:
         print(action_batch)
         print(state_batch.shape)
         print(action_batch.shape)
-        raw_input()
+        #raw_input()
 
             # state_batch.append(state)
             # action_batch.append(action)

@@ -98,6 +98,8 @@ class TD3Agent:
         state_batch, action_batch, reward_batch, next_state_batch, masks = self.replay_buffer.sample(batch_size)
 
         # print(action_batch)
+        print("action_batch.shape" + str(action_batch.shape))
+        print("state_batch: " + str(state_batch.shape))
 
 
         action_space_noise = self.generate_action_space_noise(action_batch)
@@ -106,21 +108,28 @@ class TD3Agent:
         next_actions = self.actor.forward(state_batch) #+ action_space_noise
         next_Q1 = self.critic1_target.forward(next_state_batch, next_actions)
         next_Q2 = self.critic2_target.forward(next_state_batch, next_actions)
-        expected_Q = reward_batch + self.gamma * torch.min(next_Q1, next_Q2)
+        print(next_Q1)
+        print(next_Q2)
+        expected_Q = reward_batch.cpu() + self.gamma * torch.min(next_Q1, next_Q2)
 
         # critic loss
         curr_Q1 = self.critic1.forward(state_batch, action_batch)
         curr_Q2 = self.critic2.forward(state_batch, action_batch)
         critic1_loss = F.mse_loss(curr_Q1, expected_Q.detach())
         critic2_loss = F.mse_loss(curr_Q2, expected_Q.detach())
+
         
         # update critics
         self.critic1_optimizer.zero_grad()
-        critic1_loss.backward()
+        critic1_loss.backward(retain_graph=True)
         self.critic1_optimizer.step()
 
+        print(curr_Q2)
+        print(critic2_loss)
+
+
         self.critic2_optimizer.zero_grad()
-        critic2_loss.backward()
+        critic2_loss.backward(retain_graph=True)
         self.critic2_optimizer.step()
 
         # delyaed update for actor & target networks  

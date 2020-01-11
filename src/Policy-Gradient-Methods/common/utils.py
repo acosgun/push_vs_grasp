@@ -15,7 +15,7 @@ class mini_batch_train:
             episode_reward = 0
 
             for step in range(max_steps):
-                action = agent.get_action(state)
+                action = agent.get_action(torch.unsqueeze(state,dim=0))
                
                 next_state, reward, done, _ = env.step(action)
                 # print(next_state)
