@@ -72,19 +72,23 @@ class BasicBuffer:
         
         done_batch = torch.Tensor([]).to(self.device)
 
-        batch = random.sample(self.buffer, batch_size * 2/3) + random.sample(self.no_reward_buffer, batch_size / 3)
+        batch = random.sample(self.buffer, int(batch_size * 2/3.0)) + random.sample(self.no_reward_buffer, int(batch_size / 3.0))
 
         for experience in batch:
 
             state, action, reward, next_state, done = experience
-            print("done")
-            print(done)
-            print(next_state)
-            state_batch = torch.cat((state_batch, state),0)
+            state_batch = torch.cat((state_batch, torch.unsqueeze(state,dim=0)),0)
             action_batch = torch.cat((action_batch, action),0)
             reward_batch = torch.cat((reward_batch, reward),0)
             next_state_batch = torch.cat((next_state_batch, next_state),0)
             done_batch = torch.cat((done_batch, done.float()),0)
+        print(batch)
+        print(len(self.buffer))
+        print(state_batch)
+        print(action_batch)
+        print(state_batch.shape)
+        print(action_batch.shape)
+        raw_input()
 
             # state_batch.append(state)
             # action_batch.append(action)
@@ -119,4 +123,4 @@ class BasicBuffer:
         return (state_batch, action_batch, reward_batch, next_state_batch, done_batch)
 
     def __len__(self):
-        return int(len(self.buffer))
+        return int(min(len(self.buffer), len(self.no_reward_buffer)))

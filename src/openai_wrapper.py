@@ -53,10 +53,12 @@ class CustomEnv(gym.Env):
                 l.append(i.y)
                 l.append(int(i.is_red))    
             l = torch.Tensor(l).long().cuda()    
+            print(l)
+            # raw_input()
 
 
-            cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
-            cv2.imwrite("/home/rhys/pic.png", cv_image)
+            # cv_image = self.bridge.imgmsg_to_cv2(img, "rgb8")
+            # cv2.imwrite("/home/rhys/pic.png", cv_image)
             # image = np.expand_dims(cv_image, axis=0)
             # image = torch.tensor(np.transpose(image, (0,3,1,2))).to(torch.device("cuda"), dtype=torch.float)
 
@@ -88,6 +90,8 @@ class CustomEnv(gym.Env):
                 l.append(i.y)
                 l.append(int(i.is_red))    
             l = torch.Tensor(l).long().cuda()
+            print(l)
+            # raw_input()
             return l
         except:
             self.restart_simulator()
@@ -96,7 +100,7 @@ class CustomEnv(gym.Env):
 
         
     def restart_simulator(self):
-        subprocess.Popen(["/home/rhys/gym_test/ws/src/push_vs_grasp/src/simulator.sh"], shell=True)
+        subprocess.Popen(["/home/rhys/catkin_ws/src/push_vs_grasp/src/simulator.sh"], shell=True)
         
         rospy.wait_for_service('/reset_action')
         rospy.wait_for_service('/push_action')

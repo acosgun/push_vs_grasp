@@ -25,7 +25,11 @@ class InvariantModel(nn.Module):
         # print(x)
 
         if not (a is None):
-            x = torch.cat((x,a), dim=1)
+            print(a)
+            print(x)
+            raw_input()
+
+            x = torch.cat((x[0].float(),torch.from_numpy(a).float().cuda()), dim=1)
      
         out = self.rho.forward(x)
         # print("output of rho")

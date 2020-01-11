@@ -180,6 +180,7 @@ public:
     random_objects(true);
     cv::Mat img = test_derived->get_ocv_img_from_gl_img();
     res.next_state = cv_to_ros(img);
+    std::cout << "size: " << test_derived->get_all_objects().size() << std::endl;
     res.objects = test_derived->get_all_objects();
 
     currently_simulate = true;

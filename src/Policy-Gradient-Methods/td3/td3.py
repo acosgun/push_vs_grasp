@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import random
 import numpy as np
+import math
 
 from models import Critic, Actor
 from common.replay_buffers import BasicBuffer
@@ -58,21 +59,45 @@ class TD3Agent:
 
     def get_action(self, obs):
         action = []
-        print("obs")
-        print(obs)
-        if random.random() > 0.3:
+        action_type = random.random()
+        if action_type > 0.5:
             action = self.actor.forward(obs)
             #action = action.squeeze(0).cpu().detach().numpy()
+        elif action_type > 0.75:
+      
+            random_object = random.randint(0, math.floor(len(obs) / 3)-1)
+
+            x,y,is_red = obs[3*random_object:3*random_object+3].cpu().detach()
+            # print(x,y)
+            goal = self.get_finish_point(is_red)
+            x = (x-10) * 1/75.0
+            y = 1/30.0 * (35-y)
+            # print(np.array([x,y,goal[0],goal[1]]))
+            return np.array([x,y,goal[0],goal[1]])
         else:
-            print("taking random action lol")
-            #action = np.array([random.random() for i in range(4)])
-            action = torch.LongTensor([random.random() for i in range(4)])
+            action = np.array([random.random() for i in range(4)])
+            #action = torch.LongTensor([random.random() for i in range(4)])
         return action
     
+    def get_finish_point(self, is_red):
+        if is_red == 1:
+            return (0.133*1.1, 0.667*0.8)
+        else:
+            return (0.866*0.8, 0.1)
+        
+
+    #        geometry_msgs::PointStamped r1; red
+    # r1.point.x = -0.7 + 0.2;
+    # r1.point.y = -(0.75 - 0.2);
+
+    # geometry_msgs::PointStamped r2; blue 
+    # r2.point.x = -0.1;
+    # r2.point.y = (0.75 - 0.2);
+
     def update(self, batch_size):
         state_batch, action_batch, reward_batch, next_state_batch, masks = self.replay_buffer.sample(batch_size)
 
-        print(action_batch)
+        # print(action_batch)
 
 
         action_space_noise = self.generate_action_space_noise(action_batch)
