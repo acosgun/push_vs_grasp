@@ -80,10 +80,10 @@ public:
 
    void reset(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses,
              std::vector<std::string> colors, geometry_msgs::PointStamped red_goal,
-             geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses, bool transform)
+             geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses)
   {
     destroy_all_objects();
-    setup_objects(centroids, radiuses, colors, red_goal, blue_goal, goal_radiuses, transform);
+    setup_objects(centroids, radiuses, colors, red_goal, blue_goal, goal_radiuses);
     
 
 
@@ -125,8 +125,8 @@ public:
 
   void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y_out)
   {
-    x_out = (x_in + 37.5) + 10;
-    y_out = -(y_in + 10) + 50;
+    x_out = (x_in + 37.5) + 20;
+    y_out = -(y_in + 10) + 60;
     return;
   }
 
@@ -204,11 +204,11 @@ public:
           if (get_body_color(b) == "red" || get_body_color(b) == "blue") {
               b2Vec2 pos = b->GetPosition();
               push_vs_grasp::object curr;
-              //double x_out, y_out;
-              //box2d_to_img(pos.x, pos.y, x_out, y_out);
+              double x_out, y_out;
+              box2d_to_img(pos.x, pos.y, x_out, y_out);
 
-              curr.x = pos.x; //x_out;
-              curr.y = pos.y; //y_out;
+              curr.x = x_out;
+              curr.y = y_out;
               curr.is_red = get_body_color(b) == "red";
               result.push_back(curr);
           }
@@ -220,51 +220,41 @@ public:
 
   cv::Mat push_action(float start_x, float start_y, float end_x, float end_y, double& out_dist, std::vector<push_vs_grasp::object> &objects)
   {
-    std::cout << "1" << std::endl;
     b2Vec2 position = b2Vec2(start_x, start_y);
-        std::cout << "2" << std::endl;
+    
     red_goal_body = get_objects(red_goal_str)[0];
     blue_goal_body = get_objects(blue_goal_str)[0];
-    std::cout << "3" << std::endl;
+
    
   
 
     float prev_reward = calc_heuristic();
 
+    std::cout << "prev_reward" << prev_reward << std::endl;
+
+    std::cout  << position.x << "," << position.y << std::endl;
+
     PushDef push_def;
     double goal_threshold = 0.02;
     double ee_multiplier = 1.25;
 
-<<<<<<< HEAD
-    std::cout << "4" << std::endl;
     double magnitude = 0.5; //* (dist > 0 ? +1 : -1);
-=======
-    double magnitude = 0.4; //* (dist > 0 ? +1 : -1);
->>>>>>> 535ecdd2aa58056e42139b275a08bef8371c30fb
 
     float angle = calc_angle2(start_x, start_y, end_x, end_y);
     float dist = get_dist_between_point(start_x, start_y, end_x, end_y);
-    std::cout << "5" << std::endl;
+
     b2Vec2 linear_velocity = calc_linear_velocity2(start_x, start_y, end_x, end_y, dist, magnitude);
 
     set_sensor_status(ee_body, false);
     set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
-    std::cout << "6" << std::endl;
-          ee_body->SetTransform(position, angle);
+
+
 
     auto set_pos = [&]() {
-          std::cout << "7" << std::endl;
+      ee_body->SetTransform(position, angle);
     };
     run_safely(set_pos);
 
-<<<<<<< HEAD
-      if (coll_check(ee_body)) {
-            std::cout << "8" << std::endl;
-        cv::Mat data = get_ocv_img_from_gl_img();
-        out_dist = calc_heuristic() - prev_reward;
-        objects = get_all_objects();
-
-=======
     for (int i = 0; i < 10000; i++) {
       // std::cout << "moving object" << std::endl;
       position.x -= linear_velocity.x;
@@ -282,7 +272,6 @@ public:
         // std::cout << "DIST" << dist << std::endl;
         break;
       }
->>>>>>> 535ecdd2aa58056e42139b275a08bef8371c30fb
 
     }
       // std::cout << "coll check: " << coll_check(ee_body) << std::endl;
@@ -300,36 +289,21 @@ public:
       auto set_velo = [&]() {
         ee_body->SetActive(true);
         ee_body->SetLinearVelocity(linear_velocity);
-    std::cout << "9" << std::endl;
       };
 
       run_safely(set_velo);
 
   using namespace std;
 
-<<<<<<< HEAD
-    std::cout << "10" << std::endl;
-
-=======
     clock_t begin = clock();
->>>>>>> 535ecdd2aa58056e42139b275a08bef8371c30fb
     push_def.push_start = ee_body->GetPosition();
     clock_t end = clock();
     double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
     while (elapsed_secs  < 60)
     {
-          std::cout << "11" << std::endl;
       double d = dist - get_dist_moved(start_x, start_y, ee_body);
 
-<<<<<<< HEAD
-      // std::cout << ee_body->GetLinearVelocity().Length();
-    std::cout << d << "," << dist << std::endl;
-
-    std::cout << "12" << std::endl;
-=======
->>>>>>> 535ecdd2aa58056e42139b275a08bef8371c30fb
       bool collision = coll_check_with_robot_base(ee_body);
-    // std::cout << d << "," <<  goal_threshold << "," << pix_coeff << std::endl;
 
       // std::cout << "velocity: " << ee_body->GetLinearVelocity().Length() << std::endl;
 
@@ -341,7 +315,6 @@ public:
         auto set_finished = [&]() {
           ee_body->SetLinearVelocity(b2Vec2(0, 0));
           set_sensor_status(ee_body, true);
-              std::cout << "13" << std::endl;
         };
         run_safely(set_finished);
 
@@ -351,30 +324,29 @@ public:
       {
         auto set_cont_velocity = [&]() { ee_body->SetLinearVelocity(linear_velocity); };
         run_safely(set_cont_velocity);
-            std::cout << "14" << std::endl;
       }
       end = clock();
     elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
     }
-
+    
     std::cout  << ee_body->GetPosition().x << "," << ee_body->GetPosition().y << std::endl;
-    std::cout << "15" << std::endl;
+
     push_def.push_end = ee_body->GetPosition();
 
     auto set_inactive = [&]() { ee_body->SetActive(false); };
     run_safely(set_inactive);
-    std::cout << "16" << std::endl;
+
     cv::Mat data = get_ocv_img_from_gl_img();
 
     out_dist = calc_heuristic() - prev_reward;
-    std::cout << "17" << std::endl;
+
     std::cout << "current reward" << calc_heuristic() << std::endl;
 
     std::cout << "difference" << out_dist << std::endl;
 
     objects = get_all_objects();
 
-    std::cout << "18" << std::endl;
+
 
     return data;
   }
@@ -510,18 +482,18 @@ public:
 
    void setup_objects(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses,
                        std::vector<std::string> colors, geometry_msgs::PointStamped red_goal,
-                       geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses, bool transform)
+                       geometry_msgs::PointStamped blue_goal, std::vector<double> goal_radiuses)
     {
       this->centroids = centroids;
       this->colors = colors;
       this->goal_radiuses = goal_radiuses;
       setup_table(red_goal, blue_goal);
-      draw_table(centroids, radiuses, colors, red_goal, blue_goal, transform);
-    } 
+      draw_table(centroids, radiuses, colors, red_goal, blue_goal);
+    }
 
     void draw_table(std::vector<geometry_msgs::PointStamped> centroids, std::vector<double> radiuses,
                     std::vector<std::string> colors, geometry_msgs::PointStamped red_goal,
-                    geometry_msgs::PointStamped blue_goal, bool transform)
+                    geometry_msgs::PointStamped blue_goal)
     {
       for (int i = 0; i < centroids.size(); i++)
       {
@@ -531,7 +503,7 @@ public:
 
         double x_out, y_out;
         robot_to_box2d_frame(centroids[i].point.x, centroids[i].point.y, x_out, y_out);
-        myBodyDef.position.Set(transform ? x_out : centroids[i].point.x, transform ? y_out : centroids[i].point.y);
+        myBodyDef.position.Set(x_out, y_out);
         b2Body* dynamicBody1;
 
         auto create_db1 = [&]() { dynamicBody1 = m_world->CreateBody(&myBodyDef); };

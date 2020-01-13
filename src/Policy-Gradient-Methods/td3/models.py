@@ -21,11 +21,14 @@ class InvariantModel(nn.Module):
         # compute the representation for each data point
         # print(x)
         # print(x.shape)
-        print("original shape: " + str(x.shape))
+        # print(x)
+        # print("original shape: " + str(x.shape))
         x = self.phi.forward(x)
-        print("shape after network: " + str(x.shape))
+        # print(x)
+        # print("shape after network: " + str(x.shape))
+        # print(x)
         x = torch.sum(x, dim=1, keepdim=False)
-        print("shape after summing: " + str(x.shape))
+        # print("shape after summing: " + str(x.shape))
         # print(x)
 
         if not (a is None):
@@ -35,7 +38,8 @@ class InvariantModel(nn.Module):
             # print(x.shape)
             
             # raw_input()
-
+            # print(x)
+            # print(a)
             x = torch.cat([x.float(),a.float().cuda()], 1)
      
         out = self.rho.forward(x)
@@ -55,12 +59,9 @@ class TextSumer(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, x):
-	# print(x)
         x = self.embedding(x)
-	# print(x)
         x = self.linear(x)
-	# print(x)        
-	x = self.tanh(x)
+        x = self.tanh(x)
         return x
 
 class SmallRho(nn.Module):
@@ -73,11 +74,11 @@ class SmallRho(nn.Module):
         self.fc2 = nn.Linear(10, self.output_size)
 
     def forward(self, x):
-        print("next network: " + str(x.shape))
+        # print("next network: " + str(x.shape))
         x = F.relu(self.fc1(x))
-        print("Going through first layer: " + str(x.shape))
+        # print("Going through first layer: " + str(x.shape))
         x = torch.sigmoid(self.fc2(x)).squeeze(dim=0).cpu() #.detach().numpy()
-        print("final shapee: " + str(x.shape))
+        # print("final shapee: " + str(x.shape))
        # x = self.fc2(x)
         return x
 

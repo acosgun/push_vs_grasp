@@ -59,11 +59,9 @@ class TD3Agent:
 
     def get_action(self, obs):
         action = []
-        # print("obs")
-        # print(obs)
-        if random.random() > 0.3:
+        action_type = random.random()
+        if action_type > 0.5:
             action = self.actor.forward(obs)
-  
             #action = action.squeeze(0).cpu().detach().numpy()
         elif action_type > 0.75:
       
@@ -77,12 +75,8 @@ class TD3Agent:
             # print(np.array([x,y,goal[0],goal[1]]))
             return np.array([x,y,goal[0],goal[1]])
         else:
-            print("taking random action lol")
-            #action = np.array([random.random() for i in range(4)])
             action = np.array([random.random() for i in range(4)])
-
-            # action = torch.FloatTensor(array)
-            # print(array)
+            #action = torch.LongTensor([random.random() for i in range(4)])
         return action
     
     def get_finish_point(self, is_red):
@@ -104,8 +98,8 @@ class TD3Agent:
         state_batch, action_batch, reward_batch, next_state_batch, masks = self.replay_buffer.sample(batch_size)
 
         # print(action_batch)
-        print("action_batch.shape" + str(action_batch.shape))
-        print("state_batch: " + str(state_batch.shape))
+        # print("action_batch.shape" + str(action_batch.shape))
+        # print("state_batch: " + str(state_batch.shape))
 
 
         action_space_noise = self.generate_action_space_noise(action_batch)
@@ -114,8 +108,8 @@ class TD3Agent:
         next_actions = self.actor.forward(state_batch) #+ action_space_noise
         next_Q1 = self.critic1_target.forward(next_state_batch, next_actions)
         next_Q2 = self.critic2_target.forward(next_state_batch, next_actions)
-        print(next_Q1)
-        print(next_Q2)
+        # print(next_Q1)
+        # print(next_Q2)
         expected_Q = reward_batch.cpu() + self.gamma * torch.min(next_Q1, next_Q2)
 
         # critic loss
@@ -130,8 +124,8 @@ class TD3Agent:
         critic1_loss.backward(retain_graph=True)
         self.critic1_optimizer.step()
 
-        print(curr_Q2)
-        print(critic2_loss)
+        # print(curr_Q2)
+        # print(critic2_loss)
 
 
         self.critic2_optimizer.zero_grad()

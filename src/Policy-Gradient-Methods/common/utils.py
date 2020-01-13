@@ -15,18 +15,16 @@ class mini_batch_train:
             episode_reward = 0
 
             for step in range(max_steps):
-                action = agent.get_action(torch.unsqueeze(state))
-                print("got action")
-                next_state, reward, done, _ = env.step(action, True)
-                print(next_state)
-                
+                action = agent.get_action(torch.unsqueeze(state,dim=0))
+               
+                next_state, reward, done, _ = env.step(action)
+                # print(next_state)
                 agent.replay_buffer.push(state, action, reward, next_state, done, reward > 0.01)
-                print("reached 1")
                 episode_reward += reward
-                print("reached 2")
+
                 if len(agent.replay_buffer) > batch_size:
                     agent.update(batch_size)   
-                    print("reached 3")
+
                 if done or step == max_steps-1:
                     self.episode_rewards.append(episode_reward)
                     print("Episode " + str(episode) + ": " + str(episode_reward))
@@ -43,7 +41,7 @@ def mini_batch_train_frames(env, agent, max_frames, batch_size):
     episode_reward = 0
 
     for frame in range(max_frames):
-        action = agent.get_action(state) 
+        action = agent.get_action(state)
         next_state, reward, done, _ = env.step(action)
         agent.replay_buffer.push(state, action, reward, next_state, done)
         episode_reward += reward

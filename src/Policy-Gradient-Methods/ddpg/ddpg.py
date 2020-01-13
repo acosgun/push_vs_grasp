@@ -41,7 +41,7 @@ class DDPGAgent:
         self.noise = OUNoise(self.env.action_space)
         
     def get_action(self, obs):
-        print(obs)
+        # print(obs)
         state = torch.FloatTensor(obs).unsqueeze(0).to(self.device)
         action = self.actor.forward(state)
         action = action.squeeze(0).cpu().detach().numpy()
