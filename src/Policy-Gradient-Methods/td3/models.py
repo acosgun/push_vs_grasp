@@ -19,15 +19,27 @@ class InvariantModel(nn.Module):
 
     def forward(self, x, a = None):
         # compute the representation for each data point
+        # print(x)
+        # print(x.shape)
+        print("original shape: " + str(x.shape))
         x = self.phi.forward(x)
-     
-        x = torch.sum(x, dim=0, keepdim=True)
+        print("shape after network: " + str(x.shape))
+        x = torch.sum(x, dim=1, keepdim=False)
+        print("shape after summing: " + str(x.shape))
         # print(x)
 
         if not (a is None):
-            x = torch.cat((x,a), dim=1)
+            # print(a)
+            # print(a.shape)
+            # print(x)
+            # print(x.shape)
+            
+            # raw_input()
+
+            x = torch.cat([x.float(),a.float().cuda()], 1)
      
         out = self.rho.forward(x)
+        # raw_input()
         # print("output of rho")
         # print(out)
         # print(self.rho.output_size)
@@ -61,8 +73,11 @@ class SmallRho(nn.Module):
         self.fc2 = nn.Linear(10, self.output_size)
 
     def forward(self, x):
+        print("next network: " + str(x.shape))
         x = F.relu(self.fc1(x))
-        x = torch.sigmoid(self.fc2(x)).squeeze(dim=0).cpu().detach().numpy()
+        print("Going through first layer: " + str(x.shape))
+        x = torch.sigmoid(self.fc2(x)).squeeze(dim=0).cpu() #.detach().numpy()
+        print("final shapee: " + str(x.shape))
        # x = self.fc2(x)
         return x
 
@@ -76,7 +91,7 @@ class Critic(nn.Module):
         self.action_dim = action_dim
 
         self.the_phi = TextSumer()
-        self.the_rho = SmallRho(input_size=30, output_size=1)
+        self.the_rho = SmallRho(input_size=34, output_size=1)
 
         self.model = InvariantModel(phi=self.the_phi, rho=self.the_rho)
 

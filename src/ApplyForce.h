@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <random>
+#include <ctime>
 #include <cmath>
 
 // ROS
@@ -234,8 +235,12 @@ public:
     double goal_threshold = 0.02;
     double ee_multiplier = 1.25;
 
+<<<<<<< HEAD
     std::cout << "4" << std::endl;
     double magnitude = 0.5; //* (dist > 0 ? +1 : -1);
+=======
+    double magnitude = 0.4; //* (dist > 0 ? +1 : -1);
+>>>>>>> 535ecdd2aa58056e42139b275a08bef8371c30fb
 
     float angle = calc_angle2(start_x, start_y, end_x, end_y);
     float dist = get_dist_between_point(start_x, start_y, end_x, end_y);
@@ -252,15 +257,45 @@ public:
     };
     run_safely(set_pos);
 
+<<<<<<< HEAD
       if (coll_check(ee_body)) {
             std::cout << "8" << std::endl;
         cv::Mat data = get_ocv_img_from_gl_img();
         out_dist = calc_heuristic() - prev_reward;
         objects = get_all_objects();
 
+=======
+    for (int i = 0; i < 10000; i++) {
+      // std::cout << "moving object" << std::endl;
+      position.x -= linear_velocity.x;
+      position.y -= linear_velocity.y;
+            
+      auto set_pos = [&]() {
+      ee_body->SetTransform(position, angle);
+      };
+      run_safely(set_pos);
 
-      return data;
-        }
+      if (!coll_check(ee_body)) {
+        start_x = position.x;
+        start_y = position.y;
+        dist = get_dist_between_point(start_x, start_y, end_x, end_y);
+        // std::cout << "DIST" << dist << std::endl;
+        break;
+      }
+>>>>>>> 535ecdd2aa58056e42139b275a08bef8371c30fb
+
+    }
+      // std::cout << "coll check: " << coll_check(ee_body) << std::endl;
+
+      // if (coll_check(ee_body)) {
+        
+      //   cv::Mat data = get_ocv_img_from_gl_img();
+      //   objects = get_all_objects();
+
+      //   out_dist = calc_heuristic() - prev_reward;
+
+      // return data;
+      //   }
 
       auto set_velo = [&]() {
         ee_body->SetActive(true);
@@ -270,25 +305,39 @@ public:
 
       run_safely(set_velo);
 
+  using namespace std;
 
+<<<<<<< HEAD
     std::cout << "10" << std::endl;
 
+=======
+    clock_t begin = clock();
+>>>>>>> 535ecdd2aa58056e42139b275a08bef8371c30fb
     push_def.push_start = ee_body->GetPosition();
-
-    while (true)
+    clock_t end = clock();
+    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+    while (elapsed_secs  < 60)
     {
           std::cout << "11" << std::endl;
       double d = dist - get_dist_moved(start_x, start_y, ee_body);
 
+<<<<<<< HEAD
       // std::cout << ee_body->GetLinearVelocity().Length();
     std::cout << d << "," << dist << std::endl;
 
     std::cout << "12" << std::endl;
+=======
+>>>>>>> 535ecdd2aa58056e42139b275a08bef8371c30fb
       bool collision = coll_check_with_robot_base(ee_body);
     // std::cout << d << "," <<  goal_threshold << "," << pix_coeff << std::endl;
 
+      // std::cout << "velocity: " << ee_body->GetLinearVelocity().Length() << std::endl;
+
       if (d < goal_threshold * pix_coeff || collision || ee_body->GetLinearVelocity().Length() == 0 ) //at goal or stuck
       {
+        // std::cout << "d < goal_threshold * pix_coeff" << (d < goal_threshold * pix_coeff) << std::endl;
+        // std::cout << "collision" << collision << std::endl;
+        // std::cout << "ee_body->GetLinearVelocity().Length() == 0" << (ee_body->GetLinearVelocity().Length() == 0) << std::endl;
         auto set_finished = [&]() {
           ee_body->SetLinearVelocity(b2Vec2(0, 0));
           set_sensor_status(ee_body, true);
@@ -304,6 +353,8 @@ public:
         run_safely(set_cont_velocity);
             std::cout << "14" << std::endl;
       }
+      end = clock();
+    elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
     }
 
     std::cout  << ee_body->GetPosition().x << "," << ee_body->GetPosition().y << std::endl;
@@ -507,8 +558,8 @@ public:
         jd.bodyA = ground;
         jd.bodyB = dynamicBody1;
         jd.collideConnected = true;
-        jd.maxForce = 6;   // mass * gravity;
-        jd.maxTorque = 6;  // mass * radius * grvity;
+        jd.maxForce = 5;   // mass * gravity;
+        jd.maxTorque = 5;  // mass * radius * grvity;
 
         auto create_jd = [&]() { m_world->CreateJoint(&jd); };
         run_safely(create_jd);

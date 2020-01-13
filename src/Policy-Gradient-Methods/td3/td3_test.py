@@ -19,7 +19,7 @@ actor_lr = 1e-5
 
 max_episodes = 100000
 max_steps = 200
-batch_size = 50
+batch_size = 10
 agent = TD3Agent(env, gamma, tau, buffer_maxlen, delay_step, noise_std, bound, critic_lr, actor_lr)
 
 train = mini_batch_train()

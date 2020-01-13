@@ -6,14 +6,16 @@ import torch
 class mini_batch_train:
     def start(self, env, agent, max_episodes, max_steps, batch_size):
         self.episode_rewards = []
-
-        for episode in range(max_episodes):
+        episode = 0
+        while True:
+            episode += 1
+        #for episode in range(max_episodes):
             state = env.reset().to('cuda').long()
             print("EPISODE..." + str(episode))
             episode_reward = 0
 
             for step in range(max_steps):
-                action = agent.get_action(state)
+                action = agent.get_action(torch.unsqueeze(state))
                 print("got action")
                 next_state, reward, done, _ = env.step(action, True)
                 print(next_state)
