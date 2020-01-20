@@ -14,25 +14,17 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   geometry_msgs
-  tf
-  moveit_core
-  moveit_msgs
-  moveit_planners_ompl
-  moveit_ros_move_group
-  moveit_ros_planning_interface
-  moveit_ros_visualization
-  moveit_visual_tools
-  rviz_visual_tools
   genmsg
   actionlib_msgs
   actionlib
-  robotiq_2f_gripper_control
+  cv_bridge
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
+find_package(OpenCV REQUIRED core imgproc highgui)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -65,11 +57,11 @@ find_package(GLEW REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+ add_message_files(
+   FILES
+   object.msg
 #   Message2.msg
-# )
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -85,6 +77,7 @@ add_action_files(
   FILES
   PickPlace.action
   Plan.action
+  Push.action
 )
 
 ## Generate added messages and services with any dependencies listed here
@@ -93,6 +86,7 @@ add_action_files(
    actionlib_msgs  # Or other packages containing msgs
    geometry_msgs
    std_msgs
+   sensor_msgs
 )
 
 ################################################
@@ -127,7 +121,7 @@ add_action_files(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES push_vs_grasp
-   CATKIN_DEPENDS gazebo_msgs rospy geometry_msgs tf moveit_core moveit_ros_move_group actionlib_msgs
+   CATKIN_DEPENDS rospy geometry_msgs actionlib_msgs
 #  DEPENDS system_lib
 )
 
@@ -138,6 +132,8 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(include Box2D ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} 	${OPENGL_INCLUDE_DIR} ${GLEW_INCLUDE_DIRS} ${Box2D_SOURCE_DIR} ${Testbed_Framework_SRCS})
+
+include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -193,7 +189,8 @@ target_link_libraries(box2d_planner_server
    ${GLEW_LIBRARIES}
    glfw
    ${ADDITIONAL_LIBRARIES}
-   ${OPENGL_LIBRARIES}  
+   ${OPENGL_LIBRARIES} 
+   ${OpenCV_LIBRARIES} 
 )
 target_link_libraries(task_planner
    ${catkin_LIBRARIES}

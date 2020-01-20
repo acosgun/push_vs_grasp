@@ -10,6 +10,10 @@
 //ROS
 #include <ros/ros.h>
 #include <geometry_msgs/PointStamped.h>
+#include <push_vs_grasp/object.h>
+
+#include <opencv2/opencv.hpp>
+
 
 struct BodyState {
   b2Vec2 position;
@@ -50,9 +54,11 @@ class ApplyForce : public Test
   double ee_long = 0.32;
   double ee_short = 0.08;    
   b2Body* ee_body;
-  b2Body* robot_base_body;
+  // b2Body* robot_base_body;
   b2Body* red_goal_body;
   b2Body* blue_goal_body;
+  b2Body* ground;	  
+
   
  public:
  ApplyForce(): red_ptr(&red_str), blue_ptr(&blue_str), red_goal_ptr(&red_goal_str), blue_goal_ptr(&blue_goal_str), gray_ptr(&gray_str) { }
@@ -73,6 +79,26 @@ class ApplyForce : public Test
     }
     return world_state;
   }
+
+  std::vector<push_vs_grasp::object> get_all_objects() {
+      std::vector<push_vs_grasp::object> result;
+        for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
+          if (get_body_color(b) == "red" || get_body_color(b) == "blue") {
+              b2Vec2 pos = b->GetPosition();
+              push_vs_grasp::object curr;
+              double x_out, y_out;
+              box2d_to_robot_frame(pos.x, pos.y, x_out, y_out);
+
+              curr.x = x_out;
+              curr.y = y_out;
+              curr.is_red = get_body_color(b) == "red";
+              result.push_back(curr);
+          }
+
+        }
+        return result;
+    }
+
 
   void load_world(WorldState state) {
 
@@ -127,6 +153,15 @@ class ApplyForce : public Test
 	b = next;
       }
   }
+    b2Vec2 calc_linear_velocity2(float start_x, float start_y, float end_x, float end_y, double mag, double out_magnitude)
+  {
+    b2Vec2 linear_velocity;
+
+    linear_velocity.x = (end_x - start_x) * out_magnitude/mag;
+    linear_velocity.y = (end_y - start_y) * out_magnitude/mag;
+
+    return linear_velocity;
+  }
   
   void robot_to_box2d_frame(const double x_in, const double y_in, double& x_out, double& y_out) {
     x_out = y_in * pix_coeff;
@@ -137,6 +172,20 @@ class ApplyForce : public Test
     x_out = -y_in/pix_coeff;
     y_out = x_in/pix_coeff;
     return;
+  }
+
+  void box2d_to_img(const double x_in, const double y_in, double& x_out, double& y_out)
+  {
+    x_out = (x_in + 37.5) + 20;
+    y_out = -(y_in + 10) + 60;
+    return;
+  }
+  double get_dist_moved(float x_start, float y_start, b2Body* b_to)
+  {
+    double diff_x = x_start - b_to->GetPosition().x;
+    double diff_y = y_start - b_to->GetPosition().y;
+    double mag = sqrt(diff_x * diff_x + diff_y * diff_y);
+    return mag;
   }
 
   b2Vec2 calc_linear_velocity(b2Body* b_from, b2Body* b_to, double out_magnitude) {
@@ -165,7 +214,7 @@ class ApplyForce : public Test
        	
   PushDef simulate_push(int obj_id, bool goal_oriented, bool draw) {    
     PushDef push_def;
-    double goal_threshold = 0.08;
+    double goal_threshold = 0.01;
     double ee_multiplier = 1.25;
 
     b2Body* b = get_object_from_id(obj_id);          
@@ -206,9 +255,9 @@ class ApplyForce : public Test
     push_def.push_start = ee_body->GetPosition();    
     while (true) {
       double d = get_dist_between_bodies(ee_body, goal_body);
-      bool collision = coll_check_with_robot_base(ee_body);
+      // bool collision = coll_check_with_robot_base(ee_body);
       
-      if (d < goal_threshold*pix_coeff || collision) {
+      if (d < goal_threshold*pix_coeff) {
 	ee_body->SetLinearVelocity(b2Vec2(0,0));
 	set_sensor_status(ee_body, true);
 	break;
@@ -222,20 +271,164 @@ class ApplyForce : public Test
     ee_body->SetActive(false);
     return push_def;
   }
+      double calc_angle2(float start_x, float start_y, float end_x, float end_y)
+  {
+    double diff_x = start_x - end_x;
+    double diff_y = start_y - end_y;
+    return atan2(diff_y, diff_x) + M_PI / 2;
+  }
+
+  double get_dist_between_point(float start_x, float start_y, float end_x, float end_y)
+  {
+    double diff_x = start_x - end_x;
+    double diff_y = start_y - end_y;
+    double mag = sqrt(diff_x * diff_x + diff_y * diff_y);
+    return mag;
+  }
 
 
-  double calc_heuristic() {
+  void push_action(float start_x, float start_y, float end_x, float end_y)
+  {
+    b2Vec2 position = b2Vec2(start_x, start_y);
+    
+    red_goal_body = get_objects(red_goal_str)[0];
+    blue_goal_body = get_objects(blue_goal_str)[0];
+
+   
+    float prev_reward = calc_heuristic();
+
+   
+    PushDef push_def;
+    double goal_threshold = 0.02;
+    double ee_multiplier = 1.25;
+
+    double magnitude = 0.5; //* (dist > 0 ? +1 : -1);
+
+    float angle = calc_angle2(start_x, start_y, end_x, end_y);
+    float dist = get_dist_between_point(start_x, start_y, end_x, end_y);
+
+    b2Vec2 linear_velocity = calc_linear_velocity2(start_x, start_y, end_x, end_y, dist, magnitude);
+
+    set_sensor_status(ee_body, false);
+    set_obj_dimensions(ee_body, ee_long * ee_multiplier, ee_short * ee_multiplier);
+
+    ee_body->SetTransform(position, angle);
+   
+    for (int i = 0; i < 10000; i++) {
+      // std::cout << "moving object" << std::endl;
+      position.x -= linear_velocity.x;
+      position.y -= linear_velocity.y;
+            
+      ee_body->SetTransform(position, angle);
+      draw_stuff(true, true);
+
+      
+      if (!coll_check(ee_body)) {
+        start_x = position.x;
+        start_y = position.y;
+        dist = get_dist_between_point(start_x, start_y, end_x, end_y);
+        // std::cout << "DIST" << dist << std::endl;
+        break;
+      }
+
+    }
+    ee_body->SetActive(true);
+    ee_body->SetLinearVelocity(linear_velocity);
+
+    push_def.push_start = ee_body->GetPosition();
+    
+    while (true)    {
+      double d = dist - get_dist_moved(start_x, start_y, ee_body);
+      // std::cout << d << std::endl;
+
+      // bool collision = coll_check_with_robot_base(ee_body);
+
+      if (d < goal_threshold * pix_coeff || ee_body->GetLinearVelocity().Length() == 0 ) //at goal or stuck
+      {
+        ee_body->SetLinearVelocity(b2Vec2(0, 0));
+        set_sensor_status(ee_body, true);
+        
+        break;
+      }
+      else
+      {
+      draw_stuff(true, true);
+
+        ee_body->SetLinearVelocity(linear_velocity);
+      }
+    }
+    
+    push_def.push_end = ee_body->GetPosition();
+
+    ee_body->SetActive(false);
+
+  }
+
+
+cv::Mat get_ocv_img_from_gl_img()
+  {
+    cv::Mat img(60, 100, CV_8UC3, cv::Scalar(0, 0, 0));
+
+    for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())
+    {
+      cv::Scalar colour;
+
+      if (get_body_color(b) == "red")
+      {
+        colour = cv::Scalar(0, 0, 255);
+
+        double x_out, y_out;
+        box2d_to_img(b->GetPosition().x, b->GetPosition().y, x_out, y_out);
+        cv::circle(img, cv::Point(x_out, y_out), 0.02 * pix_coeff, colour, -1);
+      }
+      else if (get_body_color(b) == "blue")
+      {
+        colour = cv::Scalar(255, 0, 0);
+
+        double x_out, y_out;
+        box2d_to_img(b->GetPosition().x, b->GetPosition().y, x_out, y_out);
+        cv::circle(img, cv::Point(x_out, y_out), 0.02 * pix_coeff, colour, -1);
+      }
+    }
+
+    return img;
+  }
+
+  double calc_heuristic()
+  {
     double dist = 0.0;
     double d = 0.0;
-    for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext()) {
-      if (get_body_color(b) == "red")
-	d = get_dist_between_bodies(b, red_goal_body);
-      else if (get_body_color(b) == "blue")
-	d = get_dist_between_bodies(b, blue_goal_body);      
-      dist = dist + d;
+    for (b2Body* b = m_world->GetBodyList(); b; b = b->GetNext())
+    {
+      if (get_body_color(b) == "red" || get_body_color(b) == "blue")
+      {
+        
+        if (get_dist_between_bodies(b, get_body_color(b) == "blue" ? blue_goal_body : red_goal_body) < 10)
+        {
+         
+          d = 0;
+        }
+        else
+        {
+          d = -get_dist_between_bodies(b, get_body_color(b) == "blue" ? blue_goal_body : red_goal_body);
+        }
+
+        dist = dist + d;
+
+      }
     }
-    return dist;
-  }
+      
+      return dist;
+    }
+
+
+
+
+
+
+
+
+
 
   void plan(geometry_msgs::PointStamped &obj_centroid, geometry_msgs::PointStamped &placement, bool& goal_reached, int& action_type)
   {    
@@ -405,15 +598,15 @@ class ApplyForce : public Test
     return -1;
   }  
 
-  bool coll_check_with_robot_base(b2Body* cur_body) {
-    //check with robot base
-    b2Fixture* f_1 = cur_body->GetFixtureList();
-    b2Fixture* f_2 = robot_base_body->GetFixtureList();
-    bool overlap = b2TestOverlap(f_1->GetShape(), 0, f_2->GetShape(), 0,  cur_body->GetTransform(), robot_base_body->GetTransform());
-    if (overlap)
-      return true;
-    return false;
-  }
+  // bool coll_check_with_robot_base(b2Body* cur_body) {
+  //   //check with robot base
+  //   b2Fixture* f_1 = cur_body->GetFixtureList();
+  //   b2Fixture* f_2 = robot_base_body->GetFixtureList();
+  //   bool overlap = b2TestOverlap(f_1->GetShape(), 0, f_2->GetShape(), 0,  cur_body->GetTransform(), robot_base_body->GetTransform());
+  //   if (overlap)
+  //     return true;
+  //   return false;
+  // }
   
   bool coll_check(b2Body* cur_body) {
     //check with tabletop objects
@@ -426,7 +619,7 @@ class ApplyForce : public Test
       if (overlap)
 	return true;
     }
-    return coll_check_with_robot_base(cur_body);
+    return false; //coll_check_with_robot_base(cur_body);
 }
   
 void set_sensor_status(b2Body* body, bool isSensor) {
@@ -576,6 +769,17 @@ void set_sensor_status(b2Body* body, bool isSensor) {
       b2FixtureDef myFixtureDef;
       myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
       dynamicBody1->CreateFixture(&myFixtureDef); //add a fixture to the body
+      dynamicBody1->SetActive(true);
+
+      b2FrictionJointDef jd;
+      jd.localAnchorA.SetZero();
+      jd.localAnchorB.SetZero();
+      jd.bodyA = ground;
+      jd.bodyB = dynamicBody1;
+      jd.collideConnected = true;
+      jd.maxForce = 1;
+      jd.maxTorque = 1;
+      m_world->CreateJoint(&jd);
 
       bodyUserData* myStruct = new bodyUserData;	    
       myStruct->id = i;
@@ -594,7 +798,6 @@ void set_sensor_status(b2Body* body, bool isSensor) {
   {
     m_world->SetGravity(b2Vec2(0.0f, 0.0f));
 
-    b2Body* ground;	  
 
     b2EdgeShape shape;
     b2FixtureDef sd;
@@ -610,42 +813,44 @@ void set_sensor_status(b2Body* body, bool isSensor) {
     //bd.position.Set(0.0f, table_y_len/2-robot_base_offset);
     bd.position.Set(0.0f, 0.0f);
     ground = m_world->CreateBody(&bd);
+    ground->SetActive(true);
+
 	  
-    // Left vertical
-    shape.Set(pix_coeff* b2Vec2(-table_x_len/2,-robot_base_offset), pix_coeff*b2Vec2(-table_x_len/2, table_y_len - robot_base_offset));
-    //shape.Set(pix_coeff*b2Vec2(-table_x_len/2,-table_y_len/2), pix_coeff*b2Vec2(-table_x_len/2, table_y_len/2));
+    // // Left vertical
+    // shape.Set(pix_coeff* b2Vec2(-table_x_len/2,-robot_base_offset), pix_coeff*b2Vec2(-table_x_len/2, table_y_len - robot_base_offset));
+    // //shape.Set(pix_coeff*b2Vec2(-table_x_len/2,-table_y_len/2), pix_coeff*b2Vec2(-table_x_len/2, table_y_len/2));
 
-    ground->CreateFixture(&sd);
+    // ground->CreateFixture(&sd);
 
-    // Right vertical
-    shape.Set(pix_coeff*b2Vec2(table_x_len/2, -robot_base_offset), pix_coeff*b2Vec2(table_x_len/2, table_y_len - robot_base_offset) );
-    ground->CreateFixture(&sd);
+    // // Right vertical
+    // shape.Set(pix_coeff*b2Vec2(table_x_len/2, -robot_base_offset), pix_coeff*b2Vec2(table_x_len/2, table_y_len - robot_base_offset) );
+    // ground->CreateFixture(&sd);
 
-    // Top horizontal
-    shape.Set(pix_coeff*b2Vec2(-table_x_len/2, table_y_len - robot_base_offset), pix_coeff*b2Vec2(table_x_len/2, table_y_len - robot_base_offset));
-    ground->CreateFixture(&sd);
+    // // Top horizontal
+    // shape.Set(pix_coeff*b2Vec2(-table_x_len/2, table_y_len - robot_base_offset), pix_coeff*b2Vec2(table_x_len/2, table_y_len - robot_base_offset));
+    // ground->CreateFixture(&sd);
 
-    //std::cout<< "TABLE X: " <<pix_coeff*table_x_len/2 << " Y: " << pix_coeff*(table_y_len - robot_base_offset)<<std::endl;
+    // //std::cout<< "TABLE X: " <<pix_coeff*table_x_len/2 << " Y: " << pix_coeff*(table_y_len - robot_base_offset)<<std::endl;
 	  
-    // Bottom horizontal
-    shape.Set(pix_coeff*b2Vec2(-table_x_len/2, - robot_base_offset), pix_coeff*b2Vec2(table_x_len/2, - robot_base_offset));
-    ground->CreateFixture(&sd);	  
+    // // Bottom horizontal
+    // shape.Set(pix_coeff*b2Vec2(-table_x_len/2, - robot_base_offset), pix_coeff*b2Vec2(table_x_len/2, - robot_base_offset));
+    // ground->CreateFixture(&sd);	  
 
     //Robot Base
     b2BodyDef myBodyDef;
     myBodyDef.type = b2_staticBody;
     myBodyDef.position.Set(0.0,0.0);	  
-    robot_base_body = m_world->CreateBody(&myBodyDef);	  
-    b2CircleShape circleShape;
-    circleShape.m_p.Set(0, 0); //position, relative to body position
-    circleShape.m_radius = 0.05*pix_coeff; //radius	  
-    b2FixtureDef myFixtureDef;
-    myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
-    robot_base_body->CreateFixture(&myFixtureDef); //add a fixture to the body	  
-    bodyUserData* robot_base_data = new bodyUserData;
-    robot_base_data->id = -1;
-    robot_base_data->str = gray_str;	      
-    robot_base_body->SetUserData(robot_base_data);
+    // robot_base_body = m_world->CreateBody(&myBodyDef);	  
+    // b2CircleShape circleShape;
+    // circleShape.m_p.Set(0, 0); //position, relative to body position
+    // circleShape.m_radius = 0.05*pix_coeff; //radius	  
+    // b2FixtureDef myFixtureDef;
+    // myFixtureDef.shape = &circleShape; //this is a pointer to the shape above
+    // robot_base_body->CreateFixture(&myFixtureDef); //add a fixture to the body	  
+    // bodyUserData* robot_base_data = new bodyUserData;
+    // robot_base_data->id = -1;
+    // robot_base_data->str = gray_str;	      
+    // robot_base_body->SetUserData(robot_base_data);
 
     //Robot End Effector
     b2BodyDef ee_body_def;

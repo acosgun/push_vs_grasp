@@ -1,0 +1,19 @@
+# Define the goal
+geometry_msgs/PointStamped[] centroids
+float64[] radiuses
+string[] colors
+float64[] goal_radiuses
+geometry_msgs/PointStamped red_goal
+geometry_msgs/PointStamped blue_goal
+float64 start_x
+float64 start_y
+float64 end_x
+float64 end_y
+---
+# Define the result
+object[] objects
+sensor_msgs/Image next_state
+float64 reward
+bool done
+---
+# Define a feedback message

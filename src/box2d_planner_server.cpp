@@ -9,7 +9,11 @@
 #include <actionlib/server/simple_action_server.h>
 
 //Custom
-#include <push_vs_grasp/PlanAction.h>
+#include <push_vs_grasp/PushAction.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
+#include <cv_bridge/cv_bridge.h>
+
 
 //BOX2D
 #include "../Box2D/Testbed/Framework/Test.h"
@@ -26,15 +30,32 @@ class Box2DPlanner: public Test
 {
  private:
   ros::NodeHandle nh_;
-  actionlib::SimpleActionServer<push_vs_grasp::PlanAction> as_;
+  // actionlib::SimpleActionServer<push_vs_grasp::PlanAction> as_;
+  actionlib::SimpleActionServer<push_vs_grasp::PushAction> push_as_;
+
   bool virgin = true;
   
   void init_actionlib(){
-    as_.start();
+    push_as_.start();
     ROS_INFO("Box2DPlanner Server ON");
   }
+
+  sensor_msgs::Image cv_to_ros(cv::Mat img)
+  {
+    cv_bridge::CvImage img_bridge;
+    sensor_msgs::Image img_msg;  // >> message to be sent
+
+    std_msgs::Header header;  // empty header
+    // header.seq = counter; // user defined counter
+    header.stamp = ros::Time::now();  // time
+    img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, img);
+
+    img_bridge.toImageMsg(img_msg);  // from cv_bridge to sensor_msgs::Image
+
+    return img_msg;
+  }
   
-  void executeCB (const actionlib::SimpleActionServer<push_vs_grasp::PlanAction>::GoalConstPtr& goal)
+  void executeCB (const actionlib::SimpleActionServer<push_vs_grasp::PushAction>::GoalConstPtr& goal)
   {
     ROS_INFO("PlanAction Server: executeCB");
     
@@ -50,19 +71,20 @@ class Box2DPlanner: public Test
     geometry_msgs::PointStamped placement;
     bool goal_reached;
     int action_type;
-    test_derived->plan(obj_centroid, placement, goal_reached, action_type);
+    test_derived->push_action(goal->start_x, goal->start_y, goal->end_x, goal->end_y);
 
+    cv::Mat img = test_derived->get_ocv_img_from_gl_img();
     
-    push_vs_grasp::PlanResult result_;
-    result_.obj_centroid = obj_centroid;
-    result_.placement = placement;
-    result_.goal_reached = goal_reached;
-    result_.action_type = action_type;
-    as_.setSucceeded(result_);
+    push_vs_grasp::PushResult result_;
+    result_.objects = test_derived->get_all_objects();
+    result_.next_state = cv_to_ros(img); 
+    result_.reward = test_derived->calc_heuristic();
+    result_.done = result_.reward == 0;
+    push_as_.setSucceeded(result_);
   }
 
  public:  
- Box2DPlanner(ros::NodeHandle* nodehandle): virgin(true), nh_(*nodehandle), as_(nh_, "/box2d_planner", boost::bind(&Box2DPlanner::executeCB, this, _1),false) {
+ Box2DPlanner(ros::NodeHandle* nodehandle): virgin(true), nh_(*nodehandle), push_as_(nh_, "/box2d_planner", boost::bind(&Box2DPlanner::executeCB, this, _1),false) {
     init_actionlib();
   }
   
